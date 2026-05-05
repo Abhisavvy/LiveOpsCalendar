@@ -1,0 +1,433 @@
+'use client'
+
+import React, { useEffect } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { 
+  Sheet, 
+  SheetContent, 
+  SheetDescription, 
+  SheetFooter, 
+  SheetHeader, 
+  SheetTitle 
+} from '@/components/ui/sheet'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { 
+  Form, 
+  FormControl, 
+  FormDescription, 
+  FormField, 
+  FormItem, 
+  FormLabel, 
+  FormMessage 
+} from '@/components/ui/form'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { useToast } from '@/hooks/use-toast'
+import { 
+  LiveOpsEvent, 
+  EventInputSchema, 
+  EventInput, 
+  EVENT_TYPES, 
+  EVENT_STATUSES,
+  RecurrenceConfig 
+} from '../types/events'
+import { useEventStore } from '../hooks/useEventStore'
+import { DurationSelector } from './DurationSelector'
+import { RecurrenceConfig as RecurrenceConfigComponent } from './RecurrenceConfig'
+import { formatDateTimeForInput, inputDateToISO, addDurationToDate, nowISO } from '../lib/date-utils'
+import { Trash2, Copy } from 'lucide-react'
+
+interface EventDetailSheetProps {
+  event?: LiveOpsEvent | null
+  isOpen: boolean
+  onOpenChange: (open: boolean) => void
+  defaultStart?: string
+  defaultEnd?: string
+}
+
+export function EventDetailSheet({ 
+  event, 
+  isOpen, 
+  onOpenChange, 
+  defaultStart, 
+  defaultEnd 
+}: EventDetailSheetProps) {
+  const { toast } = useToast()
+  const addEvent = useEventStore(state => state.addEvent)
+  const updateEvent = useEventStore(state => state.updateEvent)
+  const deleteEvent = useEventStore(state => state.deleteEvent)
+  const duplicateEvent = useEventStore(state => state.duplicateEvent)
+  
+  const isEditing = Boolean(event)
+  const title = isEditing ? 'Edit Event' : 'Create Event'
+
+  const form = useForm<EventInput>({
+    resolver: zodResolver(EventInputSchema),
+    defaultValues: {
+      title: '',
+      start: nowISO(),
+      end: addDurationToDate(nowISO(), '1d'),
+      cohort: 'All',
+      eventType: 'Unknown',
+      placement: '',
+      description: '',
+      status: 'Draft',
+    },
+  })
+
+  // Reset form when event changes or sheet opens/closes
+  useEffect(() => {
+    if (!isOpen) {
+      form.reset()
+      return
+    }
+
+    if (event) {
+      // Editing existing event
+      form.reset({
+        title: event.title,
+        start: event.start,
+        end: event.end,
+        cohort: event.cohort,
+        eventType: event.eventType,
+        placement: event.placement,
+        description: event.description,
+        status: event.status,
+        recurrence: event.recurrence,
+      })
+    } else {
+      // Creating new event
+      form.reset({
+        title: '',
+        start: defaultStart || nowISO(),
+        end: defaultEnd || addDurationToDate(defaultStart || nowISO(), '1d'),
+        cohort: 'All',
+        eventType: 'Unknown',
+        placement: '',
+        description: '',
+        status: 'Draft',
+      })
+    }
+  }, [event, isOpen, defaultStart, defaultEnd, form])
+
+  const onSubmit = (data: EventInput) => {
+    try {
+      if (isEditing && event) {
+        const success = updateEvent(event.id, data)
+        if (success) {
+          toast({
+            title: "Event Updated",
+            description: `${data.title} has been updated successfully.`,
+          })
+          onOpenChange(false)
+        } else {
+          toast({
+            title: "Update Failed",
+            description: "Could not update the event. Please try again.",
+            variant: "destructive",
+          })
+        }
+      } else {
+        const newEvent = addEvent(data)
+        toast({
+          title: "Event Created",
+          description: `${newEvent.title} has been created successfully.`,
+        })
+        onOpenChange(false)
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "An unexpected error occurred.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleDelete = () => {
+    if (!event) return
+    
+    const success = deleteEvent(event.id)
+    if (success) {
+      toast({
+        title: "Event Deleted",
+        description: `${event.title} has been deleted.`,
+      })
+      onOpenChange(false)
+    } else {
+      toast({
+        title: "Delete Failed",
+        description: "Could not delete the event. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  const handleDuplicate = () => {
+    if (!event) return
+    
+    const duplicated = duplicateEvent(event.id)
+    if (duplicated) {
+      toast({
+        title: "Event Duplicated",
+        description: `Created a copy of ${event.title}.`,
+      })
+      onOpenChange(false)
+    } else {
+      toast({
+        title: "Duplication Failed",
+        description: "Could not duplicate the event. Please try again.",
+        variant: "destructive",
+      })
+    }
+  }
+
+  return (
+    <Sheet open={isOpen} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle>{title}</SheetTitle>
+          <SheetDescription>
+            {isEditing 
+              ? 'Modify the event details below.' 
+              : 'Fill in the details to create a new LiveOps event.'}
+          </SheetDescription>
+        </SheetHeader>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
+            {/* Title */}
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Title *</FormLabel>
+                  <FormControl>
+                    <Input placeholder="Enter event title" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    A clear, descriptive name for your event
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Date Range */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="start"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Start Date & Time *</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="datetime-local"
+                        value={formatDateTimeForInput(field.value)}
+                        onChange={(e) => field.onChange(inputDateToISO(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="end"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>End Date & Time *</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="datetime-local"
+                        value={formatDateTimeForInput(field.value)}
+                        onChange={(e) => field.onChange(inputDateToISO(e.target.value))}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Event Type and Status */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="eventType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Event Type *</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {EVENT_TYPES.map((type) => (
+                          <SelectItem key={type} value={type}>
+                            {type}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {EVENT_STATUSES.map((status) => (
+                          <SelectItem key={status} value={status}>
+                            {status}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Cohort and Placement */}
+            <div className="grid grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="cohort"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cohort *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., All, D0, D1" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Target audience for this event
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="placement"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Placement *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="e.g., Homescreen | Left" {...field} />
+                    </FormControl>
+                    <FormDescription>
+                      Where the event appears in-game
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* Description */}
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Enter event description, conditions, or fine print..."
+                      className="min-h-[100px]"
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Detailed description of the event mechanics and requirements
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Recurrence Configuration */}
+            <FormField
+              control={form.control}
+              name="recurrence"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Recurrence (Optional)</FormLabel>
+                  <FormControl>
+                    <RecurrenceConfigComponent
+                      value={field.value}
+                      onChange={field.onChange}
+                    />
+                  </FormControl>
+                  <FormDescription>
+                    Configure repeating events (experimental feature)
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Form Actions */}
+            <SheetFooter className="flex-col space-y-2 sm:space-y-0 sm:flex-row sm:justify-between">
+              <div className="flex gap-2">
+                {isEditing && (
+                  <>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleDuplicate}
+                    >
+                      <Copy className="h-4 w-4 mr-1" />
+                      Duplicate
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleDelete}
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Delete
+                    </Button>
+                  </>
+                )}
+              </div>
+              
+              <div className="flex gap-2">
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">
+                  {isEditing ? 'Update Event' : 'Create Event'}
+                </Button>
+              </div>
+            </SheetFooter>
+          </form>
+        </Form>
+      </SheetContent>
+    </Sheet>
+  )
+}
