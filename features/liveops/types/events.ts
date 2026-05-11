@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
-// Branded types for type safety
-export type EventId = string & { readonly __brand: 'EventId' }
+// Branded types for type safety (align with Zod's `.brand()` typing)
+export type EventId = string & z.BRAND<'EventId'>
 export type CohortType = string
 export type PlacementType = string
 
@@ -150,7 +150,8 @@ export const ExportConfigSchema = z.object({
   dateFormat: z.string().default('YYYY-MM-DD'),
 })
 
-export type ExportConfig = z.infer<typeof ExportConfigSchema>
+// Use Zod *input* type so callers can omit defaults (e.g. `dateFormat`)
+export type ExportConfig = z.input<typeof ExportConfigSchema>
 
 // Utility functions for branded types
 export function createEventId(): EventId {

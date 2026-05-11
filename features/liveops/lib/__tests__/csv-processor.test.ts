@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect } from 'vitest'
 import { processCsvFile, generateSampleCsv, exportEventsToCsv } from '../csv-processor'
 import { LiveOpsEvent, createEventId } from '../../types/events'
 
@@ -10,7 +10,14 @@ global.File = class File {
   
   constructor(bits: BlobPart[], filename: string, options?: FilePropertyBag) {
     this.name = filename
-    this.size = bits.reduce((acc, bit) => acc + (typeof bit === 'string' ? bit.length : bit.size || 0), 0)
+    this.size = bits.reduce((acc, bit) => {
+      if (typeof bit === 'string') return acc + bit.length
+      if (bit instanceof ArrayBuffer) return acc + bit.byteLength
+      if (ArrayBuffer.isView(bit)) return acc + bit.byteLength
+      // Blob has `size`, but BlobPart typing includes many possibilities.
+      const maybeSize = (bit as any)?.size
+      return acc + (typeof maybeSize === 'number' ? maybeSize : 0)
+    }, 0)
     this.type = options?.type || ''
   }
 } as any
@@ -38,20 +45,7 @@ describe('CSV Processor', () => {
       expect(result.errors[0]?.message).toContain('Invalid file type')
     })
 
-    it('should process valid CSV with correct column mapping', async () => {
-      const csvContent = `Flow Name,Starting Date,Timer,Cohort,Pop-up type,Lobby Icon | Where,Conditions/ Intent
-Move Master,2024-01-15,1d,All,IAP,Homescreen | Left,Play 50 moves`
-      
-      const file = new File([csvContent], 'events.csv', { type: 'text/csv' })
-      
-      // Mock Papa.parse since it's not available in test environment
-      const mockParse = vi.fn()
-      vi.doMock('papaparse', () => ({
-        default: { parse: mockParse }
-      }))
-      
-      // We'll test the transformation logic separately since Papa.parse is complex to mock
-    })
+    it.todo('should process valid CSV with correct column mapping')
   })
 
   describe('generateSampleCsv', () => {

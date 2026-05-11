@@ -11,6 +11,8 @@ import { useEventStore } from '../hooks/useEventStore'
 import { Button } from '@/components/ui/button'
 import { Menu, X, Plus } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { CalendarLegend } from './CalendarLegend'
+import { CalendarEmptyStateCallout } from './CalendarEmptyStateCallout'
 
 export function LiveOpsDashboard() {
   const [selectedEvent, setSelectedEvent] = useState<LiveOpsEvent | null>(null)
@@ -20,7 +22,9 @@ export function LiveOpsDashboard() {
   const [createEventDates, setCreateEventDates] = useState<{ start?: string; end?: string }>({})
   
   const loadFromStorage = useEventStore(state => state.loadFromStorage)
-  const eventCount = useEventStore(state => state.filteredEvents.length)
+  const totalEventCount = useEventStore(state => state.events.length)
+  const visibleEventCount = useEventStore(state => state.filteredEvents.length)
+  const clearFilters = useEventStore(state => state.clearFilters)
 
   // Load events from storage on mount
   useEffect(() => {
@@ -82,7 +86,9 @@ export function LiveOpsDashboard() {
             <div className="flex-1">
               <h2 className="text-lg font-semibold">LiveOps Events</h2>
               <p className="text-sm text-muted-foreground">
-                {eventCount} event{eventCount === 1 ? '' : 's'} loaded
+                {totalEventCount === visibleEventCount
+                  ? `${totalEventCount} event${totalEventCount === 1 ? '' : 's'} loaded`
+                  : `${totalEventCount} loaded • ${visibleEventCount} visible`}
               </p>
             </div>
           )}
@@ -129,7 +135,9 @@ export function LiveOpsDashboard() {
 
         {/* Mobile overlay */}
         {isMobile && isSidebarOpen && (
-          <div
+          <button
+            type="button"
+            aria-label="Close sidebar"
             className="fixed inset-0 bg-background/80 backdrop-blur-sm z-40"
             onClick={() => setIsSidebarOpen(false)}
           />
@@ -159,25 +167,22 @@ export function LiveOpsDashboard() {
 
         {/* Calendar Content */}
         <div className="flex-1 p-4 overflow-auto">
-          {eventCount === 0 ? (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <h3 className="text-lg font-medium mb-2">No events yet</h3>
-                <p className="text-muted-foreground mb-4">
-                  Import a CSV file or create your first event to get started
-                </p>
-                <Button variant="outline" onClick={handleCreateEvent}>
-                  Create Event
-                </Button>
-              </div>
-            </div>
-          ) : (
+          <div className="space-y-3">
+            <CalendarLegend />
+
+            {totalEventCount === 0 ? (
+              <CalendarEmptyStateCallout mode="noEvents" onCreateEvent={handleCreateEvent} />
+            ) : visibleEventCount === 0 ? (
+              <CalendarEmptyStateCallout mode="noMatches" onClearFilters={clearFilters} />
+            ) : null}
+
             <CalendarView
-              className="h-full"
+              className="w-full"
+              initialView={isMobile ? 'listWeek' : 'dayGridMonth'}
               onEventClick={handleEventClick}
               onDateSelect={handleDateSelect}
             />
-          )}
+          </div>
         </div>
       </div>
 
@@ -186,8 +191,8 @@ export function LiveOpsDashboard() {
         event={selectedEvent}
         isOpen={isEventSheetOpen}
         onOpenChange={setIsEventSheetOpen}
-        defaultStart={createEventDates.start}
-        defaultEnd={createEventDates.end}
+        {...(createEventDates.start ? { defaultStart: createEventDates.start } : {})}
+        {...(createEventDates.end ? { defaultEnd: createEventDates.end } : {})}
       />
     </div>
   )

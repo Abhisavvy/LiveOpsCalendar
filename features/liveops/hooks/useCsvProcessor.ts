@@ -3,7 +3,6 @@
 import { useState, useCallback } from 'react'
 import { processCsvFile, generateSampleCsv } from '../lib/csv-processor'
 import { CsvProcessingResult } from '../types/events'
-import { useEventStore } from './useEventStore'
 import { useToast } from '@/hooks/use-toast'
 
 interface CsvProcessorState {
@@ -19,7 +18,6 @@ export function useCsvProcessor() {
     error: null,
   })
   
-  const importFromCSV = useEventStore(state => state.importFromCSV)
   const { toast } = useToast()
 
   const processFile = useCallback(async (file: File) => {
@@ -34,32 +32,6 @@ export function useCsvProcessor() {
         result,
         error: null 
       }))
-      
-      // Show results toast
-      if (result.errors.length === 0) {
-        toast({
-          title: "CSV Import Successful",
-          description: `Successfully imported ${result.successfulRows} events from ${result.totalRows} rows.`,
-        })
-        
-        // Import events into store
-        importFromCSV(result)
-      } else if (result.successfulRows > 0) {
-        toast({
-          title: "CSV Import Completed with Warnings",
-          description: `Imported ${result.successfulRows} events. ${result.errors.length} rows had errors.`,
-          variant: "default",
-        })
-        
-        // Import successful events into store
-        importFromCSV(result)
-      } else {
-        toast({
-          title: "CSV Import Failed",
-          description: `No events could be imported. ${result.errors.length} errors found.`,
-          variant: "destructive",
-        })
-      }
       
       return result
     } catch (error) {
@@ -78,7 +50,7 @@ export function useCsvProcessor() {
       
       return null
     }
-  }, [importFromCSV, toast])
+  }, [toast])
 
   const downloadSample = useCallback(() => {
     try {
@@ -103,7 +75,7 @@ export function useCsvProcessor() {
       } else {
         throw new Error('Download not supported in this browser')
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Download Failed",
         description: "Could not download sample CSV template.",

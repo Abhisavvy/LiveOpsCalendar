@@ -6,7 +6,6 @@ import {
   CsvProcessingResult,
   createEventId,
   isEventType,
-  isEventStatus,
   EventType,
   EventStatus,
   DurationOption,
@@ -437,7 +436,7 @@ export function generateSampleCsv(): string {
  */
 export function exportEventsToCsv(events: LiveOpsEvent[], originalColumnNames: boolean = true): string {
   if (events.length === 0) {
-    return generateSampleCsv()
+    throw new Error('No events to export')
   }
   
   const headers = originalColumnNames 

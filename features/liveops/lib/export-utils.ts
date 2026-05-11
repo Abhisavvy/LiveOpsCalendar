@@ -7,7 +7,7 @@ import { formatDate, calculateDuration } from './date-utils'
  */
 export function exportEventsToCSV(
   events: LiveOpsEvent[],
-  config: ExportConfig = { includeAll: false }
+  config: ExportConfig = { includeAll: false, dateFormat: 'YYYY-MM-DD' }
 ): string {
   if (events.length === 0) {
     throw new Error('No events to export')
@@ -228,7 +228,7 @@ export function getExportSummary(events: LiveOpsEvent[]): {
   byEventType: Record<string, number>
   byStatus: Record<string, number>
   byCohort: Record<string, number>
-  dateRange: { earliest?: string; latest?: string }
+  dateRange: { earliest: string; latest: string }
 } {
   if (events.length === 0) {
     return {
@@ -236,7 +236,7 @@ export function getExportSummary(events: LiveOpsEvent[]): {
       byEventType: {},
       byStatus: {},
       byCohort: {},
-      dateRange: {},
+      dateRange: { earliest: '', latest: '' },
     }
   }
   
@@ -244,8 +244,19 @@ export function getExportSummary(events: LiveOpsEvent[]): {
   const byStatus: Record<string, number> = {}
   const byCohort: Record<string, number> = {}
   
-  let earliest = events[0]?.start
-  let latest = events[0]?.end
+  const firstEvent = events[0]
+  if (!firstEvent) {
+    return {
+      totalEvents: 0,
+      byEventType: {},
+      byStatus: {},
+      byCohort: {},
+      dateRange: { earliest: '', latest: '' },
+    }
+  }
+
+  let earliest = firstEvent.start
+  let latest = firstEvent.end
   
   events.forEach(event => {
     // Count by event type

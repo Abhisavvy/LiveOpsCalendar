@@ -29,7 +29,7 @@ A production-ready, client-side LiveOps Event Calendar tool for mobile game oper
 
 ### Prerequisites
 
-- Node.js 18+ and npm/pnpm/yarn
+- Node.js 22 LTS (recommended) and npm/pnpm/yarn
 - Modern web browser with ES2017+ support
 
 ### Installation
@@ -51,12 +51,20 @@ npm run dev
 ### Build for Production
 
 ```bash
+# Clean build (recommended for warning-free logs)
+./scripts/build-clean.sh
+
+# Alternative (may still show npm `devdir` warning in Cursor)
+npm run build-clean
+
 # Build static export
 npm run build
 
 # The built files will be in the `out/` directory
 # Deploy the `out/` folder to any static hosting service
 ```
+
+> **Windows note:** `build-clean` uses a Bash script. Run it via WSL or Git Bash, or use `npm run build` if you cannot run shell scripts.
 
 ## 📋 Usage Guide
 

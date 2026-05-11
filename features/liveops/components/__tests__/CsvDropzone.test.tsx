@@ -1,8 +1,20 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import { CsvDropzone } from '../CsvDropzone'
 
-// Mock the CSV processor hook
+const BATCH_THRESHOLD = 2 * 1024 * 1024
+
+const { dropzoneMocks } = vi.hoisted(() => ({
+  dropzoneMocks: {
+    onDrop: null as null | ((files: File[]) => void | Promise<void>),
+  },
+}))
+
+const mockToast = vi.fn()
+vi.mock('@/hooks/use-toast', () => ({
+  useToast: () => ({ toast: mockToast }),
+}))
+
 const mockUseCsvProcessor = {
   isProcessing: false,
   result: null,
@@ -11,158 +23,170 @@ const mockUseCsvProcessor = {
   downloadSample: vi.fn(),
   clearResult: vi.fn(),
 }
-
 vi.mock('../../hooks/useCsvProcessor', () => ({
   useCsvProcessor: () => mockUseCsvProcessor,
 }))
 
-// Mock react-dropzone
-vi.mock('react-dropzone', () => ({
-  useDropzone: ({ onDrop, accept, maxFiles, maxSize, disabled }: any) => ({
-    getRootProps: () => ({
-      onClick: vi.fn(),
-      onDrop: vi.fn(),
-    }),
-    getInputProps: () => ({
-      type: 'file',
-      accept: Object.keys(accept || {}).join(','),
-    }),
-    isDragActive: false,
-    fileRejections: [],
-  }),
+const mockBatchImport: any = {
+  state: {
+    status: 'idle',
+    progress: { processed: 0, total: 0, percentage: 0, currentBatch: 0, totalBatches: 0 },
+    results: { successful: 0, failed: 0, errors: [] },
+    performance: { eventsPerSecond: 0, elapsedTime: 0 },
+  },
+  importFile: vi.fn(),
+  cancelImport: vi.fn(),
+  resetState: vi.fn(),
+}
+vi.mock('../../hooks/useBatchImport', () => ({
+  useBatchImport: () => mockBatchImport,
 }))
 
-describe('CsvDropzone', () => {
+const mockWizard: any = {
+  state: {
+    step: 'upload',
+    pending: null,
+    appendReplace: 'append',
+    replaceConfirmOpen: false,
+  },
+  dispatch: vi.fn(),
+  previewEvents: [],
+}
+vi.mock('../../hooks/useImportWizard', () => ({
+  useImportWizard: () => mockWizard,
+}))
+
+const mockAddMultipleEvents = vi.fn()
+const mockReplaceCalendarWithImported = vi.fn()
+vi.mock('../../hooks/useEventStore', () => ({
+  useEventStore: (selector: any) =>
+    selector({
+      addMultipleEvents: mockAddMultipleEvents,
+      replaceCalendarWithImported: mockReplaceCalendarWithImported,
+      events: [],
+    }),
+}))
+
+vi.mock('../../lib/import-commit', () => ({
+  commitImportAppend: vi.fn(),
+  commitImportReplace: vi.fn(),
+}))
+
+vi.mock('react-dropzone', () => ({
+  useDropzone: ({ accept, onDrop }: any) => {
+    dropzoneMocks.onDrop = onDrop
+    return {
+      getRootProps: () => ({
+        onClick: vi.fn(),
+        onDrop: vi.fn(),
+      }),
+      getInputProps: () => ({
+        type: 'file',
+        accept: Object.keys(accept || {}).join(','),
+      }),
+      isDragActive: false,
+      fileRejections: [],
+    }
+  },
+}))
+
+describe('CsvDropzone (wizard)', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockUseCsvProcessor.isProcessing = false
-    mockUseCsvProcessor.result = null
+    dropzoneMocks.onDrop = null
+    mockWizard.state.step = 'upload'
+    mockWizard.previewEvents = []
     mockUseCsvProcessor.error = null
+    mockBatchImport.importFile = vi.fn()
+    mockBatchImport.resetState = vi.fn()
+    mockBatchImport.state = {
+      status: 'idle',
+      progress: { processed: 0, total: 0, percentage: 0, currentBatch: 0, totalBatches: 0 },
+      results: { successful: 0, failed: 0, errors: [] },
+      performance: { eventsPerSecond: 0, elapsedTime: 0 },
+    }
   })
 
-  it('should render upload area with correct text', () => {
+  it('renders upload area with template download', () => {
     render(<CsvDropzone />)
-    
+
     expect(screen.getByText('Click to upload or drag CSV file')).toBeInTheDocument()
-    expect(screen.getByText('Supports .csv files up to 10MB with max 10,000 rows')).toBeInTheDocument()
+    expect(screen.getByText('Download Template')).toBeInTheDocument()
   })
 
-  it('should show processing state when processing', () => {
-    mockUseCsvProcessor.isProcessing = true
-    
+  it('calls downloadSample when template button is clicked', () => {
     render(<CsvDropzone />)
-    
-    expect(screen.getByText('Processing CSV...')).toBeInTheDocument()
-  })
 
-  it('should display error when present', () => {
-    mockUseCsvProcessor.error = 'Failed to process file'
-    
-    render(<CsvDropzone />)
-    
-    expect(screen.getByText('Processing Error')).toBeInTheDocument()
-    expect(screen.getByText('Failed to process file')).toBeInTheDocument()
-  })
-
-  it('should display success results', () => {
-    mockUseCsvProcessor.result = {
-      events: [
-        {
-          id: 'test-id',
-          title: 'Test Event',
-          start: '2024-01-15T00:00:00.000Z',
-          end: '2024-01-16T00:00:00.000Z',
-          cohort: 'All',
-          eventType: 'IAP' as const,
-          placement: 'Test',
-          description: 'Test',
-          status: 'Draft' as const,
-          createdAt: '2024-01-01T00:00:00.000Z',
-          updatedAt: '2024-01-01T00:00:00.000Z',
-        }
-      ],
-      errors: [],
-      totalRows: 1,
-      successfulRows: 1,
-    }
-    
-    render(<CsvDropzone />)
-    
-    expect(screen.getByText('Import Successful')).toBeInTheDocument()
-    expect(screen.getByText('Successfully imported 1 of 1 events')).toBeInTheDocument()
-  })
-
-  it('should display errors with download option', () => {
-    mockUseCsvProcessor.result = {
-      events: [],
-      errors: [
-        { row: 2, message: 'Invalid date format', column: 'Starting Date' },
-        { row: 3, message: 'Missing title', column: 'Flow Name' },
-      ],
-      totalRows: 2,
-      successfulRows: 0,
-    }
-    
-    render(<CsvDropzone />)
-    
-    expect(screen.getByText('2 Row Errors')).toBeInTheDocument()
-    expect(screen.getByText('Row 2: Invalid date format (Starting Date)')).toBeInTheDocument()
-    expect(screen.getByText('Download Report')).toBeInTheDocument()
-  })
-
-  it('should call downloadSample when template button is clicked', () => {
-    render(<CsvDropzone />)
-    
-    const downloadButton = screen.getByText('Download Template')
-    fireEvent.click(downloadButton)
-    
+    fireEvent.click(screen.getByText('Download Template'))
     expect(mockUseCsvProcessor.downloadSample).toHaveBeenCalledOnce()
   })
 
-  it('should call clearResult when clear button is clicked', () => {
-    mockUseCsvProcessor.result = {
-      events: [],
-      errors: [],
-      totalRows: 0,
-      successfulRows: 0,
+  it('renders validate panel when wizard step is validate', () => {
+    mockWizard.state.step = 'validate'
+    mockBatchImport.state = {
+      ...mockBatchImport.state,
+      results: {
+        successful: 0,
+        failed: 1,
+        errors: [{ row: 2, message: 'Invalid date format', column: 'Start' }],
+      },
     }
-    
+
     render(<CsvDropzone />)
-    
-    const clearButton = screen.getByText('Clear Results')
-    fireEvent.click(clearButton)
-    
-    expect(mockUseCsvProcessor.clearResult).toHaveBeenCalledOnce()
+    expect(screen.getByText('Validation issues detected')).toBeInTheDocument()
+    expect(screen.getByText('Cancel')).toBeInTheDocument()
   })
 
-  it('should show partial success with warnings', () => {
-    mockUseCsvProcessor.result = {
-      events: [
-        {
-          id: 'test-id',
-          title: 'Test Event',
-          start: '2024-01-15T00:00:00.000Z',
-          end: '2024-01-16T00:00:00.000Z',
-          cohort: 'All',
-          eventType: 'IAP' as const,
-          placement: 'Test',
-          description: 'Test',
-          status: 'Draft' as const,
-          createdAt: '2024-01-01T00:00:00.000Z',
-          updatedAt: '2024-01-01T00:00:00.000Z',
-        }
-      ],
-      errors: [
-        { row: 3, message: 'Invalid date format' },
-      ],
-      totalRows: 2,
-      successfulRows: 1,
-    }
-    
+  it('resets batch state, clears batch-processing flag, and toast on batch import failure', async () => {
+    mockBatchImport.importFile.mockRejectedValueOnce(new Error('network failure'))
+
     render(<CsvDropzone />)
-    
-    expect(screen.getByText('Import Successful')).toBeInTheDocument()
-    expect(screen.getByText('Successfully imported 1 of 2 events')).toBeInTheDocument()
-    expect(screen.getByText('1 Row Error')).toBeInTheDocument()
+
+    const largeCsv = new File(
+      [new Uint8Array(BATCH_THRESHOLD).fill(97)],
+      'large.csv',
+      { type: 'text/csv' }
+    )
+
+    await act(async () => {
+      await dropzoneMocks.onDrop?.([largeCsv])
+    })
+
+    await waitFor(() => {
+      expect(mockBatchImport.resetState).toHaveBeenCalled()
+    })
+
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        variant: 'destructive',
+        title: 'Batch import failed',
+        description: 'network failure',
+      })
+    )
+    expect(mockWizard.dispatch).toHaveBeenCalledWith({ type: 'RESET' })
+    expect(screen.getByText('Click to upload or drag CSV file')).toBeInTheDocument()
+    expect(screen.queryByText('Initializing batch processing...')).not.toBeInTheDocument()
+  })
+
+  it('renders review panel when wizard step is review', () => {
+    mockWizard.state.step = 'review'
+    mockWizard.previewEvents = [
+      {
+        id: 'event-1',
+        title: 'Test Event',
+        start: '2026-01-01T10:00:00.000Z',
+        end: '2026-01-01T11:00:00.000Z',
+        cohort: 'All',
+        eventType: 'IAP',
+        placement: 'Lobby',
+        description: '',
+        status: 'Draft',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+    ]
+
+    render(<CsvDropzone />)
+    expect(screen.getByText('Commit import')).toBeInTheDocument()
   })
 })

@@ -21,12 +21,14 @@ interface EventStore {
   addEvent: (input: EventInput) => LiveOpsEvent
   updateEvent: (id: string, input: Partial<EventInput>) => boolean
   deleteEvent: (id: string) => boolean
+  restoreEvent: (event: LiveOpsEvent) => boolean
   duplicateEvent: (id: string) => LiveOpsEvent | null
   getEvent: (id: string) => LiveOpsEvent | null
   setSelectedEvent: (event: LiveOpsEvent | null) => void
 
   // Bulk operations
   addMultipleEvents: (inputs: EventInput[]) => LiveOpsEvent[]
+  replaceCalendarWithImported: (inputs: EventInput[]) => LiveOpsEvent[]
   deleteMultipleEvents: (ids: string[]) => number
   clearAllEvents: () => void
 
@@ -74,7 +76,7 @@ export const useEventStore = create<EventStore>()(
         // Event CRUD operations
         addEvent: (input: EventInput) => {
           const event: LiveOpsEvent = {
-            id: input.id ? input.id as any : createEventId(),
+            id: input.id ? (input.id as unknown as LiveOpsEvent['id']) : createEventId(),
             title: input.title,
             start: input.start,
             end: input.end,
@@ -134,6 +136,20 @@ export const useEventStore = create<EventStore>()(
           return deleted
         },
 
+        restoreEvent: (event: LiveOpsEvent) => {
+          const exists = get().events.some(e => e.id === event.id)
+          if (exists) return false
+
+          set((state) => {
+            state.events.push(event)
+            state.lastUpdated = nowISO()
+          })
+
+          get().applyFilters()
+          get().saveToStorage()
+          return true
+        },
+
         duplicateEvent: (id: string) => {
           const originalEvent = get().events.find(e => e.id === id)
           if (!originalEvent) return null
@@ -170,7 +186,7 @@ export const useEventStore = create<EventStore>()(
         // Bulk operations
         addMultipleEvents: (inputs: EventInput[]) => {
           const newEvents = inputs.map(input => ({
-            id: input.id ? input.id as any : createEventId(),
+            id: input.id ? (input.id as unknown as LiveOpsEvent['id']) : createEventId(),
             title: input.title,
             start: input.start,
             end: input.end,
@@ -186,6 +202,34 @@ export const useEventStore = create<EventStore>()(
 
           set((state) => {
             state.events.push(...newEvents)
+            state.lastUpdated = nowISO()
+          })
+
+          get().applyFilters()
+          get().saveToStorage()
+          return newEvents
+        },
+
+        replaceCalendarWithImported: (inputs: EventInput[]) => {
+          const newEvents = inputs.map(input => ({
+            id: input.id ? (input.id as unknown as LiveOpsEvent['id']) : createEventId(),
+            title: input.title,
+            start: input.start,
+            end: input.end,
+            cohort: input.cohort,
+            eventType: input.eventType,
+            placement: input.placement,
+            description: input.description,
+            status: input.status || 'Draft',
+            recurrence: input.recurrence,
+            createdAt: nowISO(),
+            updatedAt: nowISO(),
+          }))
+
+          set((state) => {
+            state.events = newEvents
+            state.filteredEvents = newEvents
+            state.selectedEvent = null
             state.lastUpdated = nowISO()
           })
 

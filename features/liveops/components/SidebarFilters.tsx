@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
 import { Search, Filter, Calendar, Users, Target, Activity, ChevronDown, ChevronRight } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useEventFilters } from '../hooks/useEventFilters'
+import { useEventStore } from '../hooks/useEventStore'
 import { FilterChips } from './FilterChips'
 import { EVENT_TYPES, EVENT_STATUSES } from '../types/events'
 
@@ -32,6 +33,8 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
     clearFilters,
   } = useEventFilters()
 
+  const events = useEventStore(state => state.events)
+
   const [openSections, setOpenSections] = useState({
     search: true,
     eventTypes: true,
@@ -41,12 +44,23 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
     presets: false,
   })
 
-  const toggleSection = (section: keyof typeof openSections) => {
-    setOpenSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }))
+  const setSectionOpen = (section: keyof typeof openSections, open: boolean) => {
+    setOpenSections(prev => ({ ...prev, [section]: open }))
   }
+
+  const counts = useMemo(() => {
+    const byEventType: Record<string, number> = {}
+    const byStatus: Record<string, number> = {}
+    const byCohort: Record<string, number> = {}
+
+    for (const e of events) {
+      byEventType[e.eventType] = (byEventType[e.eventType] || 0) + 1
+      byStatus[e.status] = (byStatus[e.status] || 0) + 1
+      byCohort[e.cohort] = (byCohort[e.cohort] || 0) + 1
+    }
+
+    return { byEventType, byStatus, byCohort }
+  }, [events])
 
   return (
     <div className={`space-y-4 ${className}`}>
@@ -65,7 +79,7 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
       <FilterChips />
 
       {/* Search */}
-      <Collapsible open={openSections.search} onOpenChange={() => toggleSection('search')}>
+      <Collapsible open={openSections.search} onOpenChange={(open) => setSectionOpen('search', open)}>
         <CollapsibleTrigger asChild>
           <Button variant="ghost" className="w-full justify-between p-2 h-auto">
             <div className="flex items-center gap-2">
@@ -96,7 +110,7 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
       </Collapsible>
 
       {/* Event Types */}
-      <Collapsible open={openSections.eventTypes} onOpenChange={() => toggleSection('eventTypes')}>
+      <Collapsible open={openSections.eventTypes} onOpenChange={(open) => setSectionOpen('eventTypes', open)}>
         <CollapsibleTrigger asChild>
           <Button variant="ghost" className="w-full justify-between p-2 h-auto">
             <div className="flex items-center gap-2">
@@ -137,9 +151,6 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
           
           <div className="space-y-2">
             {EVENT_TYPES.map(eventType => {
-              const count = filterOptions.eventTypes.filter(t => t === eventType).length > 0 
-                ? filterOptions.eventTypes.filter(t => t === eventType).length 
-                : 0
               const isSelected = filters.eventTypes.includes(eventType)
               
               return (
@@ -156,7 +167,7 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
                     {eventType}
                   </Label>
                   <span className="text-xs text-muted-foreground">
-                    ({filterOptions.eventTypes.filter(t => t === eventType).length || 0})
+                    ({counts.byEventType[eventType] || 0})
                   </span>
                 </div>
               )
@@ -166,7 +177,7 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
       </Collapsible>
 
       {/* Cohorts */}
-      <Collapsible open={openSections.cohorts} onOpenChange={() => toggleSection('cohorts')}>
+      <Collapsible open={openSections.cohorts} onOpenChange={(open) => setSectionOpen('cohorts', open)}>
         <CollapsibleTrigger asChild>
           <Button variant="ghost" className="w-full justify-between p-2 h-auto">
             <div className="flex items-center gap-2">
@@ -207,7 +218,6 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
           
           <div className="space-y-2 max-h-32 overflow-y-auto">
             {filterOptions.cohorts.map(cohort => {
-              const count = filterOptions.cohorts.filter(c => c === cohort).length
               const isSelected = filters.cohorts.includes(cohort)
               
               return (
@@ -224,7 +234,7 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
                     {cohort}
                   </Label>
                   <span className="text-xs text-muted-foreground">
-                    ({count})
+                    ({counts.byCohort[cohort] || 0})
                   </span>
                 </div>
               )
@@ -240,7 +250,7 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
       </Collapsible>
 
       {/* Statuses */}
-      <Collapsible open={openSections.statuses} onOpenChange={() => toggleSection('statuses')}>
+      <Collapsible open={openSections.statuses} onOpenChange={(open) => setSectionOpen('statuses', open)}>
         <CollapsibleTrigger asChild>
           <Button variant="ghost" className="w-full justify-between p-2 h-auto">
             <div className="flex items-center gap-2">
@@ -281,7 +291,6 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
           
           <div className="space-y-2">
             {EVENT_STATUSES.map(status => {
-              const count = filterOptions.statuses.filter(s => s === status).length
               const isSelected = filters.statuses.includes(status)
               
               return (
@@ -298,7 +307,7 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
                     {status}
                   </Label>
                   <span className="text-xs text-muted-foreground">
-                    ({count})
+                    ({counts.byStatus[status] || 0})
                   </span>
                 </div>
               )
@@ -308,7 +317,7 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
       </Collapsible>
 
       {/* Date Range */}
-      <Collapsible open={openSections.dateRange} onOpenChange={() => toggleSection('dateRange')}>
+      <Collapsible open={openSections.dateRange} onOpenChange={(open) => setSectionOpen('dateRange', open)}>
         <CollapsibleTrigger asChild>
           <Button variant="ghost" className="w-full justify-between p-2 h-auto">
             <div className="flex items-center gap-2">
@@ -354,7 +363,7 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
       </Collapsible>
 
       {/* Quick Presets */}
-      <Collapsible open={openSections.presets} onOpenChange={() => toggleSection('presets')}>
+      <Collapsible open={openSections.presets} onOpenChange={(open) => setSectionOpen('presets', open)}>
         <CollapsibleTrigger asChild>
           <Button variant="ghost" className="w-full justify-between p-2 h-auto">
             <div className="flex items-center gap-2">

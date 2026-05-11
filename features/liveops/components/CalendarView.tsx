@@ -1,13 +1,19 @@
 'use client'
 
-import React, { useCallback, useRef } from 'react'
+import React, { useCallback } from 'react'
 import dynamic from 'next/dynamic'
-import { EventClickArg, EventDropArg, DateSelectArg } from '@fullcalendar/core'
+import { EventClickArg, EventDropArg, DateSelectArg, EventContentArg } from '@fullcalendar/core'
+import dayGridPlugin from '@fullcalendar/daygrid'
+import timeGridPlugin from '@fullcalendar/timegrid'
+import interactionPlugin from '@fullcalendar/interaction'
+import listPlugin from '@fullcalendar/list'
 import { LiveOpsEvent } from '../types/events'
 import { useEventStore } from '../hooks/useEventStore'
-import { useCalendarEvents, CalendarEventInput } from '../hooks/useCalendarEvents'
-import { addDurationToDate, nowISO } from '../lib/date-utils'
+import { useCalendarEvents, type CalendarExtendedProps } from '../hooks/useCalendarEvents'
+import { addDurationToDate } from '../lib/date-utils'
 import { useToast } from '@/hooks/use-toast'
+import { CalendarEventContent } from './CalendarEventContent'
+import { formatEventA11yLabel } from '../lib/calendar-present'
 
 // Dynamically import FullCalendar to prevent SSR issues
 const FullCalendar = dynamic(() => import('@fullcalendar/react'), {
@@ -22,24 +28,19 @@ const FullCalendar = dynamic(() => import('@fullcalendar/react'), {
   ),
 })
 
-// Import FullCalendar plugins dynamically
-const dayGridPlugin = dynamic(() => import('@fullcalendar/daygrid'))
-const timeGridPlugin = dynamic(() => import('@fullcalendar/timegrid'))
-const interactionPlugin = dynamic(() => import('@fullcalendar/interaction'))
-const listPlugin = dynamic(() => import('@fullcalendar/list'))
-
 interface CalendarViewProps {
   className?: string
   onEventClick?: (event: LiveOpsEvent) => void
   onDateSelect?: (start: string, end: string) => void
+  initialView?: 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'listWeek'
 }
 
 export function CalendarView({
   className,
   onEventClick,
   onDateSelect,
+  initialView = 'dayGridMonth',
 }: CalendarViewProps) {
-  const calendarRef = useRef<any>(null)
   const { events } = useCalendarEvents()
   const updateEvent = useEventStore(state => state.updateEvent)
   const { toast } = useToast()
@@ -102,26 +103,31 @@ export function CalendarView({
     [onDateSelect]
   )
 
-  const handleEventContent = useCallback((eventInfo: any) => {
-    const event = eventInfo.event as CalendarEventInput
-    const eventType = event.extendedProps.eventType
-    const status = event.extendedProps.status
-    const cohort = event.extendedProps.cohort
-    
-    return {
-      html: `
-        <div class="fc-event-main-frame">
-          <div class="fc-event-title-container">
-            <div class="fc-event-title fc-sticky">
-              ${getEventTypeIcon(eventType)} ${eventInfo.event.title}
-            </div>
-            <div class="fc-event-subtitle">
-              ${cohort} • ${getStatusBadge(status)}
-            </div>
-          </div>
-        </div>
-      `
-    }
+  const handleEventContent = useCallback((eventInfo: EventContentArg) => {
+    const props = eventInfo.event.extendedProps as Partial<CalendarExtendedProps> | undefined
+    const eventType = props?.eventType ?? 'Unknown'
+    const status = props?.status ?? 'Draft'
+    const cohort = props?.cohort ?? 'All'
+    const placement = props?.placement ?? ''
+    const description = props?.description ?? ''
+
+    const liveOps = props?.liveOpsData as LiveOpsEvent | undefined
+    const a11yLabel = liveOps
+      ? formatEventA11yLabel(liveOps)
+      : `${eventInfo.event.title}. Type: ${String(eventType)}. Status: ${String(status)}. Cohort: ${String(
+          cohort
+        )}.${placement ? ` Placement: ${placement}.` : ''}${description ? ` Description: ${description}.` : ''}`
+
+    // React rendering here is safe (escapes text) and allows Lucide icons.
+    return (
+      <CalendarEventContent
+        title={eventInfo.event.title}
+        eventType={eventType}
+        status={status}
+        cohort={cohort}
+        a11yLabel={a11yLabel}
+      />
+    )
   }, [])
 
   const calendarOptions = {
@@ -131,7 +137,7 @@ export function CalendarView({
       center: 'title',
       right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
     },
-    initialView: 'dayGridMonth',
+    initialView,
     editable: true,
     selectable: true,
     selectMirror: true,
@@ -153,15 +159,8 @@ export function CalendarView({
     eventOrder: 'start,-duration,allDay,title',
     // Styling
     themeSystem: 'standard',
-    // Custom styling through CSS classes
-    eventClassNames: (event) => {
-      const eventType = event.event.extendedProps.eventType
-      const status = event.event.extendedProps.status
-      return [
-        `fc-event-${eventType?.toLowerCase() || 'unknown'}`,
-        `fc-event-status-${status?.toLowerCase() || 'draft'}`,
-      ]
-    },
+    // Custom styling through CSS classes is provided via `classNames` on EventInput
+    // (see `useCalendarEvents`), so we don't add additional classes here.
     // Timezone handling
     timeZone: 'local',
     // Event constraints
@@ -173,36 +172,7 @@ export function CalendarView({
 
   return (
     <div className={className}>
-      <FullCalendar ref={calendarRef} {...calendarOptions} />
+      <FullCalendar {...calendarOptions} />
     </div>
   )
-}
-
-/**
- * Get event type icon
- */
-function getEventTypeIcon(eventType: string): string {
-  const iconMap: Record<string, string> = {
-    'IAP': '💰',
-    'Progression': '🎯',
-    'Retention': '🔄',
-    'System': '⚙️',
-    'Unknown': '❓',
-  }
-  return iconMap[eventType] || iconMap['Unknown']!
-}
-
-/**
- * Get status badge HTML
- */
-function getStatusBadge(status: string): string {
-  const colorMap: Record<string, string> = {
-    'Draft': 'gray',
-    'Scheduled': 'orange',
-    'Active': 'green',
-    'Ended': 'red',
-  }
-  
-  const color = colorMap[status] || 'gray'
-  return `<span class="status-badge status-${color.toLowerCase()}">${status}</span>`
 }

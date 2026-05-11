@@ -61,6 +61,7 @@ export function ExportButton({
       const csvContent = exportEventsToCSV(events, {
         includeAll: true,
         columnMapping: getDefaultColumnMapping(),
+        dateFormat: 'YYYY-MM-DD',
       })
       const filename = generateExportFilename(events.length, false)
       downloadCSV(csvContent, filename)
@@ -95,6 +96,7 @@ export function ExportButton({
       const csvContent = exportEventsToCSV(filteredEvents, {
         includeAll: false,
         columnMapping: getDefaultColumnMapping(),
+        dateFormat: 'YYYY-MM-DD',
       })
       const filename = generateExportFilename(filteredEvents.length, hasActiveFilters)
       downloadCSV(csvContent, filename)

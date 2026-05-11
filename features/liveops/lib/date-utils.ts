@@ -4,6 +4,7 @@ import timezone from 'dayjs/plugin/timezone'
 import duration from 'dayjs/plugin/duration'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import customParseFormat from 'dayjs/plugin/customParseFormat'
+import quarterOfYear from 'dayjs/plugin/quarterOfYear'
 
 // Configure dayjs plugins
 dayjs.extend(utc)
@@ -11,6 +12,7 @@ dayjs.extend(timezone)
 dayjs.extend(duration)
 dayjs.extend(relativeTime)
 dayjs.extend(customParseFormat)
+dayjs.extend(quarterOfYear)
 
 import { DurationOption, DURATION_OPTIONS } from '../types/events'
 
@@ -90,7 +92,10 @@ export function getEndOfToday(): string {
  * Parse various date formats and return ISO string
  */
 export function parseToISO(dateString: string): string | null {
-  // Common date formats to try
+  const trimmed = dateString.trim()
+  if (!trimmed) return null
+
+  // Common date formats to try (strict parsing).
   const formats = [
     'YYYY-MM-DD',
     'MM/DD/YYYY',
@@ -100,22 +105,15 @@ export function parseToISO(dateString: string): string | null {
     'DD/MM/YYYY HH:mm:ss',
     'YYYY-MM-DDTHH:mm:ss',
     'YYYY-MM-DDTHH:mm:ssZ',
-  ]
+  ] as const
 
-  // First try dayjs auto-parsing
-  let date = dayjs(dateString)
-  if (date.isValid()) {
-    return date.toISOString()
-  }
-
-  // Try each format explicitly
+  // IMPORTANT:
+  // - Avoid Dayjs auto-parsing: it's permissive and can accept invalid dates.
+  // - Parse as UTC to keep date inputs stable across timezones.
   for (const format of formats) {
-    date = dayjs(dateString, format)
-    if (date.isValid()) {
-      return date.toISOString()
-    }
+    const parsed = dayjs.utc(trimmed, format, true)
+    if (parsed.isValid()) return parsed.toISOString()
   }
-
   return null
 }
 
@@ -227,11 +225,28 @@ export function formatDateTimeForInput(isoDate: string): string {
 /**
  * Convert form input date to ISO string
  */
-export function inputDateToISO(inputDate: string, inputTime?: string): string {
+export function inputDateToISO(inputDate: string, inputTime?: string): string | null {
+  const trimmed = inputDate.trim()
+  if (!trimmed) return null
+
   if (inputTime) {
-    return dayjs(`${inputDate} ${inputTime}`).toISOString()
+    const parsed = dayjs.utc(`${trimmed} ${inputTime.trim()}`, 'YYYY-MM-DD HH:mm', true)
+    return parsed.isValid() ? parsed.toISOString() : null
   }
-  return dayjs(inputDate).toISOString()
+
+  // `datetime-local` inputs provide `YYYY-MM-DDTHH:mm` (no timezone).
+  // We treat it as UTC to keep stored ISO stable across timezones.
+  if (trimmed.includes('T')) {
+    const formats = ['YYYY-MM-DDTHH:mm', 'YYYY-MM-DDTHH:mm:ss'] as const
+    for (const format of formats) {
+      const parsed = dayjs.utc(trimmed, format, true)
+      if (parsed.isValid()) return parsed.toISOString()
+    }
+    return null
+  }
+
+  const parsed = dayjs.utc(trimmed, 'YYYY-MM-DD', true)
+  return parsed.isValid() ? parsed.toISOString() : null
 }
 
 /**

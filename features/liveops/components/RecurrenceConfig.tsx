@@ -1,17 +1,16 @@
 'use client'
 
 import React from 'react'
-import { Control, Controller, UseFormWatch } from 'react-hook-form'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import { RecurrenceConfig } from '../types/events'
+import type { RecurrenceConfig as RecurrenceConfigModel } from '../types/events'
 import { formatForInput } from '../lib/date-utils'
 
 interface RecurrenceConfigProps {
-  value?: RecurrenceConfig
-  onChange: (value: RecurrenceConfig | undefined) => void
+  value: RecurrenceConfigModel | undefined
+  onChange: (value: RecurrenceConfigModel | undefined) => void
   className?: string
 }
 
@@ -26,8 +25,8 @@ const DAYS_OF_WEEK = [
 ]
 
 export function RecurrenceConfig({ value, onChange, className }: RecurrenceConfigProps) {
-  const handleFrequencyChange = (frequency: RecurrenceConfig['frequency']) => {
-    const newConfig: RecurrenceConfig = {
+  const handleFrequencyChange = (frequency: RecurrenceConfigModel['frequency']) => {
+    const newConfig: RecurrenceConfigModel = {
       frequency,
       interval: value?.interval || 1,
       until: value?.until,
@@ -269,7 +268,7 @@ export function RecurrenceConfig({ value, onChange, className }: RecurrenceConfi
 /**
  * Generate human-readable recurrence summary
  */
-function getRecurrenceSummary(config: RecurrenceConfig): string {
+function getRecurrenceSummary(config: RecurrenceConfigModel): string {
   const { frequency, interval, daysOfWeek, dayOfMonth, monthlyPattern, until, count } = config
   
   let summary = ''
@@ -281,7 +280,7 @@ function getRecurrenceSummary(config: RecurrenceConfig): string {
     summary = interval === 1 ? 'Weekly' : `Every ${interval} weeks`
     
     if (daysOfWeek?.length) {
-      const dayNames = daysOfWeek.map(d => DAYS_OF_WEEK[d]?.short).join(', ')
+      const dayNames = daysOfWeek.map((d: number) => DAYS_OF_WEEK[d]?.short).join(', ')
       summary += ` on ${dayNames}`
     }
   } else if (frequency === 'monthly') {

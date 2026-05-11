@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { 
@@ -13,7 +13,6 @@ import {
 } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { 
   Form, 
   FormControl, 
@@ -26,16 +25,27 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
+import { ToastAction } from '@/components/ui/toast'
+import { buttonVariants } from '@/components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { 
   LiveOpsEvent, 
   EventInputSchema, 
   EventInput, 
   EVENT_TYPES, 
-  EVENT_STATUSES,
-  RecurrenceConfig 
+  EVENT_STATUSES
 } from '../types/events'
 import { useEventStore } from '../hooks/useEventStore'
-import { DurationSelector } from './DurationSelector'
 import { RecurrenceConfig as RecurrenceConfigComponent } from './RecurrenceConfig'
 import { formatDateTimeForInput, inputDateToISO, addDurationToDate, nowISO } from '../lib/date-utils'
 import { Trash2, Copy } from 'lucide-react'
@@ -59,10 +69,12 @@ export function EventDetailSheet({
   const addEvent = useEventStore(state => state.addEvent)
   const updateEvent = useEventStore(state => state.updateEvent)
   const deleteEvent = useEventStore(state => state.deleteEvent)
+  const restoreEvent = useEventStore(state => state.restoreEvent)
   const duplicateEvent = useEventStore(state => state.duplicateEvent)
   
   const isEditing = Boolean(event)
   const title = isEditing ? 'Edit Event' : 'Create Event'
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
 
   const form = useForm<EventInput>({
     resolver: zodResolver(EventInputSchema),
@@ -147,7 +159,7 @@ export function EventDetailSheet({
     }
   }
 
-  const handleDelete = () => {
+  const handleConfirmDelete = () => {
     if (!event) return
     
     const success = deleteEvent(event.id)
@@ -155,7 +167,24 @@ export function EventDetailSheet({
       toast({
         title: "Event Deleted",
         description: `${event.title} has been deleted.`,
+        action: (
+          <ToastAction
+            altText="Undo delete"
+            onClick={() => {
+              const restored = restoreEvent(event)
+              if (restored) {
+                toast({
+                  title: "Event Restored",
+                  description: `${event.title} has been restored.`,
+                })
+              }
+            }}
+          >
+            Undo
+          </ToastAction>
+        ),
       })
+      setIsDeleteConfirmOpen(false)
       onOpenChange(false)
     } else {
       toast({
@@ -229,7 +258,10 @@ export function EventDetailSheet({
                       <Input
                         type="datetime-local"
                         value={formatDateTimeForInput(field.value)}
-                        onChange={(e) => field.onChange(inputDateToISO(e.target.value))}
+                        onChange={(e) => {
+                          const next = inputDateToISO(e.target.value)
+                          if (next) field.onChange(next)
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
@@ -247,7 +279,10 @@ export function EventDetailSheet({
                       <Input
                         type="datetime-local"
                         value={formatDateTimeForInput(field.value)}
-                        onChange={(e) => field.onChange(inputDateToISO(e.target.value))}
+                        onChange={(e) => {
+                          const next = inputDateToISO(e.target.value)
+                          if (next) field.onChange(next)
+                        }}
                       />
                     </FormControl>
                     <FormMessage />
@@ -403,15 +438,35 @@ export function EventDetailSheet({
                       <Copy className="h-4 w-4 mr-1" />
                       Duplicate
                     </Button>
-                    <Button
-                      type="button"
-                      variant="destructive"
-                      size="sm"
-                      onClick={handleDelete}
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Delete
-                    </Button>
+                    <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          size="sm"
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          Delete
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>Delete this event?</AlertDialogTitle>
+                          <AlertDialogDescription>
+                            This will permanently remove <span className="font-medium">{event?.title}</span>. You can undo right after deleting.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            className={buttonVariants({ variant: 'destructive' })}
+                            onClick={handleConfirmDelete}
+                          >
+                            Delete
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
                   </>
                 )}
               </div>

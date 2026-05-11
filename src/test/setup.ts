@@ -1,20 +1,27 @@
 import '@testing-library/jest-dom'
+import { vi } from 'vitest'
 
 // Mock IntersectionObserver
-global.IntersectionObserver = class IntersectionObserver {
+globalThis.IntersectionObserver = class IntersectionObserver {
   constructor() {}
   disconnect() {}
   observe() {}
   unobserve() {}
-}
+  takeRecords() {
+    return []
+  }
+  root = null
+  rootMargin = ''
+  thresholds = []
+} as any
 
 // Mock ResizeObserver
-global.ResizeObserver = class ResizeObserver {
+globalThis.ResizeObserver = class ResizeObserver {
   constructor() {}
   disconnect() {}
   observe() {}
   unobserve() {}
-}
+} as any
 
 // Mock window.matchMedia
 Object.defineProperty(window, 'matchMedia', {
@@ -43,5 +50,5 @@ Object.defineProperty(window, 'localStorage', {
 })
 
 // Mock URL.createObjectURL
-global.URL.createObjectURL = vi.fn()
-global.URL.revokeObjectURL = vi.fn()
+globalThis.URL.createObjectURL = vi.fn()
+globalThis.URL.revokeObjectURL = vi.fn()

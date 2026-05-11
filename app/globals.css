@@ -80,6 +80,13 @@
 
 @layer components {
   /* FullCalendar Dark Theme Customizations */
+  .fc {
+    --fc-border-color: hsl(var(--border));
+    --fc-page-bg-color: hsl(var(--background));
+    --fc-neutral-bg-color: hsl(var(--muted) / 0.6);
+    --fc-neutral-text-color: hsl(var(--muted-foreground));
+  }
+
   .fc-theme-standard .fc-scrollgrid {
     border-color: hsl(var(--border));
   }
@@ -99,7 +106,9 @@
   }
   
   .fc-day-today {
-    background-color: hsl(var(--accent)) !important;
+    /* Softer highlight than full accent fill */
+    background-color: hsl(var(--accent) / 0.35) !important;
+    box-shadow: inset 0 0 0 1px hsl(var(--ring) / 0.25);
   }
   
   .fc-event {
@@ -108,10 +117,61 @@
     border-left-width: 4px;
     font-weight: 500;
     font-size: 0.875rem;
+    box-shadow: none;
   }
   
   .fc-event-main {
     padding: 2px 6px;
+  }
+
+  .fc-event:hover {
+    filter: brightness(1.05);
+  }
+
+  .fc-event:focus-visible,
+  .fc-event a:focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  .fc-event-title {
+    line-height: 1.1;
+  }
+
+  .fc-event-subtitle {
+    line-height: 1.1;
+    max-width: 100%;
+  }
+
+  .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    border-radius: 9999px;
+    padding: 0.1rem 0.45rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border: 1px solid hsl(var(--border));
+    background: hsl(var(--background) / 0.55);
+    color: hsl(var(--foreground));
+    white-space: nowrap;
+  }
+
+  .status-draft {
+    border-color: hsl(var(--status-draft) / 0.4);
+    color: hsl(var(--status-draft));
+  }
+  .status-scheduled {
+    border-color: hsl(var(--status-scheduled) / 0.4);
+    color: hsl(var(--status-scheduled));
+  }
+  .status-active {
+    border-color: hsl(var(--status-active) / 0.4);
+    color: hsl(var(--status-active));
+  }
+  .status-ended {
+    border-color: hsl(var(--status-ended) / 0.4);
+    color: hsl(var(--status-ended));
   }
   
   /* Event Type Colors */
@@ -145,19 +205,57 @@
     color: hsl(var(--event-unknown));
   }
   
-  .fc-button {
-    background-color: hsl(var(--primary));
+  /* Toolbar buttons (make them feel like shadcn buttons) */
+  .fc .fc-button {
+    background-color: hsl(var(--secondary)) !important;
+    border-color: hsl(var(--border)) !important;
+    color: hsl(var(--secondary-foreground)) !important;
+    border-radius: 0.5rem !important;
+    padding: 0.35rem 0.55rem !important;
+    font-size: 0.8rem !important;
+    line-height: 1.1 !important;
+    box-shadow: none !important;
+  }
+
+  .fc .fc-button:hover {
+    background-color: hsl(var(--secondary) / 0.85) !important;
+  }
+
+  .fc .fc-button:focus-visible {
+    outline: 2px solid hsl(var(--ring)) !important;
+    outline-offset: 2px !important;
+  }
+
+  .fc .fc-button:disabled {
+    opacity: 0.5 !important;
+  }
+
+  .fc .fc-button-primary:not(:disabled).fc-button-active,
+  .fc .fc-button-primary:not(:disabled):active {
+    background-color: hsl(var(--accent)) !important;
+    color: hsl(var(--accent-foreground)) !important;
+    border-color: hsl(var(--ring) / 0.35) !important;
+  }
+
+  /* List view polish */
+  .fc .fc-list {
     border-color: hsl(var(--border));
-    color: hsl(var(--primary-foreground));
   }
-  
-  .fc-button:hover {
-    background-color: hsl(var(--primary) / 0.9);
+  .fc .fc-list-day-cushion {
+    background: hsl(var(--muted) / 0.6);
+    color: hsl(var(--muted-foreground));
   }
-  
-  .fc-button-active {
-    background-color: hsl(var(--accent));
-    color: hsl(var(--accent-foreground));
+  .fc .fc-list-event:hover td {
+    background: hsl(var(--accent) / 0.25);
+  }
+  .fc .fc-list-event-title,
+  .fc .fc-list-event-title a {
+    color: hsl(var(--foreground));
+    font-weight: 600;
+  }
+  .fc .fc-list-event-time {
+    color: hsl(var(--muted-foreground));
+    font-variant-numeric: tabular-nums;
   }
 }
 

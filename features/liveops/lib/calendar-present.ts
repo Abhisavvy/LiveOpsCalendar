@@ -1,0 +1,56 @@
+import type { LucideIcon } from 'lucide-react'
+import {
+  CircleDollarSign,
+  Target,
+  RefreshCcw,
+  Settings2,
+  HelpCircle,
+  Pencil,
+  CalendarClock,
+  PlayCircle,
+  CheckCircle2,
+} from 'lucide-react'
+
+import type { EventStatus, EventType, LiveOpsEvent } from '../types/events'
+
+export type EventTypeMeta = {
+  label: string
+  Icon: LucideIcon
+  colorVar: string // CSS var name (without `var()`)
+}
+
+export type StatusMeta = {
+  label: string
+  Icon: LucideIcon
+  colorVar: string // CSS var name (without `var()`)
+}
+
+const EVENT_TYPE_META: Record<EventType, EventTypeMeta> = {
+  IAP: { label: 'IAP', Icon: CircleDollarSign, colorVar: '--event-iap' },
+  Progression: { label: 'Progression', Icon: Target, colorVar: '--event-progression' },
+  Retention: { label: 'Retention', Icon: RefreshCcw, colorVar: '--event-retention' },
+  System: { label: 'System', Icon: Settings2, colorVar: '--event-system' },
+  Unknown: { label: 'Unknown', Icon: HelpCircle, colorVar: '--event-unknown' },
+}
+
+const STATUS_META: Record<EventStatus, StatusMeta> = {
+  Draft: { label: 'Draft', Icon: Pencil, colorVar: '--status-draft' },
+  Scheduled: { label: 'Scheduled', Icon: CalendarClock, colorVar: '--status-scheduled' },
+  Active: { label: 'Active', Icon: PlayCircle, colorVar: '--status-active' },
+  Ended: { label: 'Ended', Icon: CheckCircle2, colorVar: '--status-ended' },
+}
+
+export function getEventTypeMeta(eventType: EventType | string): EventTypeMeta {
+  return EVENT_TYPE_META[(eventType as EventType) ?? 'Unknown'] ?? EVENT_TYPE_META.Unknown
+}
+
+export function getStatusMeta(status: EventStatus | string): StatusMeta {
+  return STATUS_META[(status as EventStatus) ?? 'Draft'] ?? STATUS_META.Draft
+}
+
+export function formatEventA11yLabel(event: LiveOpsEvent): string {
+  const type = getEventTypeMeta(event.eventType).label
+  const status = getStatusMeta(event.status).label
+  return `${event.title}. Type: ${type}. Status: ${status}. Cohort: ${event.cohort}. Placement: ${event.placement}.`
+}
+

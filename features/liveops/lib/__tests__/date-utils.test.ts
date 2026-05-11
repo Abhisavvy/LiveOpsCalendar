@@ -3,7 +3,6 @@ import {
   durationToHours,
   addDurationToDate,
   formatDate,
-  formatDateTime,
   isPastDate,
   isToday,
   isFutureDate,
@@ -163,6 +162,18 @@ describe('Date Utilities', () => {
       const iso = inputDateToISO(inputDate, inputTime)
       
       expect(iso).toMatch(/2024-01-15T14:30/)
+    })
+
+    it('should handle datetime-local input values', () => {
+      const datetimeLocal = '2024-01-15T14:30'
+      const iso = inputDateToISO(datetimeLocal)
+
+      expect(iso).toMatch(/2024-01-15T14:30/)
+    })
+
+    it('should return null for empty/invalid input instead of throwing', () => {
+      expect(inputDateToISO('')).toBeNull()
+      expect(inputDateToISO('not-a-date')).toBeNull()
     })
   })
 })

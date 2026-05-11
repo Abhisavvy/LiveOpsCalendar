@@ -36,7 +36,7 @@ export function getStorageUsage(): number {
   if (!isStorageAvailable()) return 0
   
   let total = 0
-  for (let key in localStorage) {
+  for (const key in localStorage) {
     if (localStorage.hasOwnProperty(key) && key.startsWith('liveops-')) {
       total += localStorage[key]?.length ?? 0
     }

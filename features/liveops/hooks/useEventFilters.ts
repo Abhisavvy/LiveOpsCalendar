@@ -2,7 +2,7 @@
 
 import { useMemo, useCallback } from 'react'
 import { useEventStore } from './useEventStore'
-import { FilterState, EventType, EventStatus } from '../types/events'
+import { EventType, EventStatus } from '../types/events'
 import { useDebounce } from './useDebounce'
 
 export function useEventFilters() {
