@@ -2,9 +2,6 @@
 const nextConfig = {
   output: 'export',
   reactStrictMode: true,
-  experimental: {
-    optimizePackageImports: ['@fullcalendar/react', 'lucide-react'],
-  },
   typescript: {
     ignoreBuildErrors: false,
   },
