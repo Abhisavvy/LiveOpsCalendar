@@ -5,7 +5,6 @@ import { useDropzone } from 'react-dropzone'
 import { Upload, FileText, AlertCircle, Download, Zap } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 import { useCsvProcessor } from '../hooks/useCsvProcessor'
@@ -251,19 +250,19 @@ export function CsvDropzone({ className }: CsvDropzoneProps) {
             </div>
           )}
 
-          <div className="flex items-center justify-between pt-2 border-t">
-            <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Need help formatting?</span>
+          <div className="space-y-3 pt-2 border-t">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Need help formatting?</span>
+              </div>
+              <Button size="sm" variant="outline" onClick={downloadSample} disabled={isAnyProcessing}>
+                <Download className="h-4 w-4 mr-1" />
+                Download Template
+              </Button>
             </div>
-            <Button size="sm" variant="outline" onClick={downloadSample} disabled={isAnyProcessing}>
-              <Download className="h-4 w-4 mr-1" />
-              Download Template
-            </Button>
+            <TemplateSelector className="w-full" />
           </div>
-
-          <Separator className="my-8" />
-          <TemplateSelector />
         </>
       )}
 

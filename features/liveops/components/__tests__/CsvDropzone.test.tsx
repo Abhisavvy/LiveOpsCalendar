@@ -112,6 +112,7 @@ describe('CsvDropzone (wizard)', () => {
 
     expect(screen.getByText('Click to upload or drag CSV file')).toBeInTheDocument()
     expect(screen.getByText('Download Template')).toBeInTheDocument()
+    expect(screen.getByText('Browse example templates')).toBeInTheDocument()
   })
 
   it('calls downloadSample when template button is clicked', () => {
