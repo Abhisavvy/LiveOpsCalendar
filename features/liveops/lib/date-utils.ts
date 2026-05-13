@@ -218,35 +218,40 @@ export function formatForInput(isoDate: string): string {
 /**
  * Format datetime for form inputs (YYYY-MM-DDTHH:mm format)
  */
-export function formatDateTimeForInput(isoDate: string): string {
+export function formatDateTimeForInput(isoDate: string | null | undefined): string {
+  if (!isoDate) return ''
   return dayjs(isoDate).format('YYYY-MM-DDTHH:mm')
 }
 
 /**
  * Convert form input date to ISO string
+ *
+ * HTML `datetime-local` and `date` inputs use the user's **local** calendar and
+ * clock with no timezone suffix. Parsing those strings with `dayjs.utc(...)`
+ * misinterprets them as UTC wall time, which shifts the stored instant when
+ * `formatDateTimeForInput` (local) and FullCalendar (`timeZone: 'local'`) agree
+ * on local semantics. Parse as local, then persist as ISO (UTC instant).
  */
 export function inputDateToISO(inputDate: string, inputTime?: string): string | null {
   const trimmed = inputDate.trim()
   if (!trimmed) return null
 
   if (inputTime) {
-    const parsed = dayjs.utc(`${trimmed} ${inputTime.trim()}`, 'YYYY-MM-DD HH:mm', true)
+    const parsed = dayjs(`${trimmed} ${inputTime.trim()}`, 'YYYY-MM-DD HH:mm', true)
     return parsed.isValid() ? parsed.toISOString() : null
   }
 
-  // `datetime-local` inputs provide `YYYY-MM-DDTHH:mm` (no timezone).
-  // We treat it as UTC to keep stored ISO stable across timezones.
   if (trimmed.includes('T')) {
     const formats = ['YYYY-MM-DDTHH:mm', 'YYYY-MM-DDTHH:mm:ss'] as const
     for (const format of formats) {
-      const parsed = dayjs.utc(trimmed, format, true)
+      const parsed = dayjs(trimmed, format, true)
       if (parsed.isValid()) return parsed.toISOString()
     }
     return null
   }
 
-  const parsed = dayjs.utc(trimmed, 'YYYY-MM-DD', true)
-  return parsed.isValid() ? parsed.toISOString() : null
+  const parsed = dayjs(trimmed, 'YYYY-MM-DD', true)
+  return parsed.isValid() ? parsed.startOf('day').toISOString() : null
 }
 
 /**

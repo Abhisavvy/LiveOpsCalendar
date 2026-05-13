@@ -22,7 +22,7 @@ describe('calendar-present', () => {
       title: 'Title',
       start: '2024-01-01T00:00:00.000Z',
       end: '2024-01-02T00:00:00.000Z',
-      cohort: 'All',
+      cohort: ['All'],
       eventType: 'IAP',
       placement: 'Homescreen',
       description: '',

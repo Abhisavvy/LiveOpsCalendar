@@ -83,7 +83,7 @@
   .fc {
     --fc-border-color: hsl(var(--border));
     --fc-page-bg-color: hsl(var(--background));
-    --fc-neutral-bg-color: hsl(var(--muted) / 0.6);
+    --fc-neutral-bg-color: hsl(var(--background));
     --fc-neutral-text-color: hsl(var(--muted-foreground));
   }
 
@@ -96,13 +96,31 @@
     border-color: hsl(var(--border));
   }
   
+  .fc .fc-scrollgrid-section-header th,
   .fc-col-header-cell {
-    background-color: hsl(var(--muted));
-    color: hsl(var(--muted-foreground));
+    background-color: hsl(var(--background)) !important;
+    color: hsl(var(--foreground)) !important;
+  }
+
+  .fc-col-header-cell-cushion {
+    color: hsl(var(--foreground)) !important;
+    font-weight: 600;
   }
   
   .fc-daygrid-day {
     background-color: hsl(var(--background));
+  }
+
+  .fc-daygrid-day-number {
+    color: hsl(var(--foreground)) !important;
+  }
+
+  .fc-day-other .fc-daygrid-day-top {
+    opacity: 0.6;
+  }
+
+  .fc-day-other .fc-daygrid-day-number {
+    color: hsl(var(--foreground) / 0.6) !important;
   }
   
   .fc-day-today {
@@ -143,6 +161,22 @@
     max-width: 100%;
   }
 
+  .fc-event .event-title-text {
+    color: hsl(var(--foreground));
+  }
+
+  .fc-event .event-type-dot {
+    height: 0.45rem;
+    width: 0.45rem;
+    border-radius: 9999px;
+    background-color: var(--event-accent, hsl(var(--foreground)));
+    flex: none;
+  }
+
+  .fc-event .event-type-accent {
+    color: var(--event-accent, hsl(var(--foreground)));
+  }
+
   .status-badge {
     display: inline-flex;
     align-items: center;
@@ -176,33 +210,38 @@
   
   /* Event Type Colors */
   .fc-event.event-iap {
+    --event-accent: hsl(var(--event-iap));
     background-color: hsl(var(--event-iap) / 0.2);
     border-color: hsl(var(--event-iap));
-    color: hsl(var(--event-iap));
+    color: hsl(var(--foreground));
   }
   
   .fc-event.event-progression {
+    --event-accent: hsl(var(--event-progression));
     background-color: hsl(var(--event-progression) / 0.2);
     border-color: hsl(var(--event-progression));
-    color: hsl(var(--event-progression));
+    color: hsl(var(--foreground));
   }
   
   .fc-event.event-retention {
+    --event-accent: hsl(var(--event-retention));
     background-color: hsl(var(--event-retention) / 0.2);
     border-color: hsl(var(--event-retention));
-    color: hsl(var(--event-retention));
+    color: hsl(var(--foreground));
   }
   
   .fc-event.event-system {
+    --event-accent: hsl(var(--event-system));
     background-color: hsl(var(--event-system) / 0.2);
     border-color: hsl(var(--event-system));
-    color: hsl(var(--event-system));
+    color: hsl(var(--foreground));
   }
   
   .fc-event.event-unknown {
+    --event-accent: hsl(var(--event-unknown));
     background-color: hsl(var(--event-unknown) / 0.2);
     border-color: hsl(var(--event-unknown));
-    color: hsl(var(--event-unknown));
+    color: hsl(var(--foreground));
   }
   
   /* Toolbar buttons (make them feel like shadcn buttons) */
@@ -235,6 +274,11 @@
     background-color: hsl(var(--accent)) !important;
     color: hsl(var(--accent-foreground)) !important;
     border-color: hsl(var(--ring) / 0.35) !important;
+  }
+
+  .fc .fc-toolbar-title {
+    color: hsl(var(--foreground)) !important;
+    font-weight: 600;
   }
 
   /* List view polish */

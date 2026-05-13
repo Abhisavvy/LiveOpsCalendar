@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Checkbox } from '@/components/ui/checkbox'
 import { 
   Form, 
   FormControl, 
@@ -38,12 +39,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog'
-import { 
-  LiveOpsEvent, 
-  EventInputSchema, 
-  EventInput, 
-  EVENT_TYPES, 
-  EVENT_STATUSES
+import {
+  LiveOpsEvent,
+  EventFormSchema,
+  type EventFormInput,
+  EventInput,
+  EVENT_TYPES,
+  EVENT_STATUSES,
+  COHORT_OPTIONS,
+  normalizeCohorts,
 } from '../types/events'
 import { useEventStore } from '../hooks/useEventStore'
 import { RecurrenceConfig as RecurrenceConfigComponent } from './RecurrenceConfig'
@@ -76,19 +80,22 @@ export function EventDetailSheet({
   const title = isEditing ? 'Edit Event' : 'Create Event'
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false)
 
-  const form = useForm<EventInput>({
-    resolver: zodResolver(EventInputSchema),
+  const form = useForm<EventFormInput>({
+    resolver: zodResolver(EventFormSchema),
     defaultValues: {
       title: '',
       start: nowISO(),
       end: addDurationToDate(nowISO(), '1d'),
-      cohort: 'All',
+      cohort: ['All'],
       eventType: 'Unknown',
       placement: '',
       description: '',
       status: 'Draft',
+      neverEnds: false,
     },
   })
+
+  const neverEndsWatched = form.watch('neverEnds')
 
   // Reset form when event changes or sheet opens/closes
   useEffect(() => {
@@ -103,12 +110,13 @@ export function EventDetailSheet({
         title: event.title,
         start: event.start,
         end: event.end,
-        cohort: event.cohort,
+        cohort: normalizeCohorts(event.cohort),
         eventType: event.eventType,
         placement: event.placement,
         description: event.description,
         status: event.status,
         recurrence: event.recurrence,
+        neverEnds: event.end === null,
       })
     } else {
       // Creating new event
@@ -116,23 +124,30 @@ export function EventDetailSheet({
         title: '',
         start: defaultStart || nowISO(),
         end: defaultEnd || addDurationToDate(defaultStart || nowISO(), '1d'),
-        cohort: 'All',
+        cohort: ['All'],
         eventType: 'Unknown',
         placement: '',
         description: '',
         status: 'Draft',
+        neverEnds: false,
       })
     }
   }, [event, isOpen, defaultStart, defaultEnd, form])
 
-  const onSubmit = (data: EventInput) => {
+  const onSubmit = (data: EventFormInput) => {
+    const { neverEnds: _neverEnds, ...payload } = data
+    const normalized: EventInput = {
+      ...payload,
+      cohort: normalizeCohorts(payload.cohort),
+      end: data.neverEnds ? null : payload.end,
+    }
     try {
       if (isEditing && event) {
-        const success = updateEvent(event.id, data)
+        const success = updateEvent(event.id, normalized)
         if (success) {
           toast({
             title: "Event Updated",
-            description: `${data.title} has been updated successfully.`,
+            description: `${normalized.title} has been updated successfully.`,
           })
           onOpenChange(false)
         } else {
@@ -143,7 +158,7 @@ export function EventDetailSheet({
           })
         }
       } else {
-        const newEvent = addEvent(data)
+        const newEvent = addEvent(normalized)
         toast({
           title: "Event Created",
           description: `${newEvent.title} has been created successfully.`,
@@ -278,6 +293,8 @@ export function EventDetailSheet({
                     <FormControl>
                       <Input
                         type="datetime-local"
+                        aria-label="End date"
+                        disabled={neverEndsWatched}
                         value={formatDateTimeForInput(field.value)}
                         onChange={(e) => {
                           const next = inputDateToISO(e.target.value)
@@ -291,6 +308,30 @@ export function EventDetailSheet({
               />
             </div>
 
+            <FormField
+              control={form.control}
+              name="neverEnds"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-center gap-2 space-y-0 pt-2">
+                  <FormControl>
+                    <Checkbox
+                      aria-label="Never ends"
+                      checked={Boolean(field.value)}
+                      onCheckedChange={(checked) => {
+                        const next = Boolean(checked)
+                        field.onChange(next)
+                        if (next) {
+                          form.setValue('end', null)
+                        } else if (!form.getValues('end')) {
+                          form.setValue('end', addDurationToDate(form.getValues('start'), '1d'))
+                        }
+                      }}
+                    />
+                  </FormControl>
+                  <FormLabel className="!mt-0 text-sm font-normal">Never ends</FormLabel>
+                </FormItem>
+              )}
+            />
             {/* Event Type and Status */}
             <div className="grid grid-cols-2 gap-4">
               <FormField
@@ -353,11 +394,34 @@ export function EventDetailSheet({
                   <FormItem>
                     <FormLabel>Cohort *</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., All, D0, D1" {...field} />
+                      <div className="grid grid-cols-2 gap-2">
+                        {COHORT_OPTIONS.map((cohort) => {
+                          const checked = field.value.includes(cohort)
+                          return (
+                            <label key={cohort} className="flex items-center gap-2 text-sm">
+                              <Checkbox
+                                checked={checked}
+                                aria-label={cohort}
+                                onCheckedChange={(nextChecked) => {
+                                  const isChecked = Boolean(nextChecked)
+                                  if (cohort === 'All') {
+                                    field.onChange(isChecked ? ['All'] : [])
+                                    return
+                                  }
+                                  const withoutAll = field.value.filter((value) => value !== 'All')
+                                  const next = isChecked
+                                    ? [...withoutAll, cohort]
+                                    : withoutAll.filter((value) => value !== cohort)
+                                  field.onChange(next.length ? next : ['All'])
+                                }}
+                              />
+                              <span>{cohort}</span>
+                            </label>
+                          )
+                        })}
+                      </div>
                     </FormControl>
-                    <FormDescription>
-                      Target audience for this event
-                    </FormDescription>
+                    <FormDescription>Target audience for this event</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}

@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest'
+import dayjs from 'dayjs'
+import customParseFormat from 'dayjs/plugin/customParseFormat'
 import {
   durationToHours,
   addDurationToDate,
@@ -10,9 +12,12 @@ import {
   calculateDuration,
   doDateRangesOverlap,
   formatForInput,
+  formatDateTimeForInput,
   inputDateToISO,
 } from '../date-utils'
 import { DurationOption } from '../../types/events'
+
+dayjs.extend(customParseFormat)
 
 describe('Date Utilities', () => {
   describe('durationToHours', () => {
@@ -149,26 +154,31 @@ describe('Date Utilities', () => {
       expect(formatted).toBe('2024-01-15')
     })
 
-    it('should convert input date back to ISO', () => {
+    it('should convert plain date input to ISO using local start-of-day', () => {
       const inputDate = '2024-01-15'
-      const iso = inputDateToISO(inputDate)
-      
-      expect(iso).toMatch(/2024-01-15T/)
+      const expected = dayjs(inputDate, 'YYYY-MM-DD', true).startOf('day').toISOString()
+      expect(inputDateToISO(inputDate)).toBe(expected)
     })
 
-    it('should handle input date with time', () => {
+    it('should parse separate date + time as local wall clock', () => {
       const inputDate = '2024-01-15'
       const inputTime = '14:30'
-      const iso = inputDateToISO(inputDate, inputTime)
-      
-      expect(iso).toMatch(/2024-01-15T14:30/)
+      const expected = dayjs(`${inputDate} ${inputTime}`, 'YYYY-MM-DD HH:mm', true).toISOString()
+      expect(inputDateToISO(inputDate, inputTime)).toBe(expected)
     })
 
-    it('should handle datetime-local input values', () => {
+    it('should parse datetime-local-shaped strings as local wall clock', () => {
       const datetimeLocal = '2024-01-15T14:30'
-      const iso = inputDateToISO(datetimeLocal)
+      const expected = dayjs(datetimeLocal, 'YYYY-MM-DDTHH:mm', true).toISOString()
+      expect(inputDateToISO(datetimeLocal)).toBe(expected)
+    })
 
-      expect(iso).toMatch(/2024-01-15T14:30/)
+    it('should round-trip ISO → datetime-local display → ISO (same instant)', () => {
+      const iso = '2024-06-01T15:30:00.000Z'
+      const displayed = formatDateTimeForInput(iso)
+      const roundTrip = inputDateToISO(displayed)
+      expect(roundTrip).not.toBeNull()
+      expect(dayjs(roundTrip).startOf('minute').valueOf()).toBe(dayjs(iso).startOf('minute').valueOf())
     })
 
     it('should return null for empty/invalid input instead of throwing', () => {

@@ -1,10 +1,23 @@
 ## Progress (canonical scratchpad)
 
 ### State
+- **2026-05-13 — Recurrence until datetime:** **COMPLETED** ✓ “Until” now uses the DateTimePicker (date+time), the summary shows the timestamp, and recurrence expansion stops at the exact `until` time. Tests: `npm test -- run features/liveops/components/__tests__/RecurrenceConfig.test.tsx features/liveops/lib/__tests__/recurrence-utils.test.ts`.
+- **2026-05-13 — Event type dot indicator:** **COMPLETED** ✓ Replaced the event-type icon with a **colored dot** in `CalendarEventContent` and added `.event-type-dot` styling in `app/globals.css`. Verified: `npm test -- run features/liveops/components/__tests__/CalendarEventContent.test.tsx`.
+- **2026-05-13 — Calendar contrast:** **COMPLETED** ✓ Boosted **day number/header** contrast (header background now matches calendar surface), softened **other-month** day opacity, shifted **event titles to neutral foreground** with **type-colored icon accents**, and strengthened subtitle text. Added high-specificity header overrides and `--fc-neutral-bg-color` alignment to prevent white header bleed. Tests updated and passing: `npm test -- run features/liveops/components/__tests__/CalendarEventContent.test.tsx`.
+- **2026-05-12 — Calendar open-ended rendering (Task 3):** **Display end** for `end: null` via `OPEN_ENDED_EVENT_END`; **`getEventDropUpdate`** preserves **null end** on drag; **`formatCohorts`** in calendar props + **Never** chip in event pills; **`formatEventA11yLabel`** adds cohort string + **Never ends** when open-ended. Tests: `calendar-utils`, `useCalendarEvents`, `CalendarEventContent`.
+- **2026-05-12 — Event detail sheet (Task 2):** **Never ends** toggle (nullable `end` + disabled end datetime) and **cohort multi-select** with **`COHORT_OPTIONS`**, **`All` exclusivity**, and **`normalizeCohorts` on submit/reset**. Tests: `features/liveops/components/__tests__/EventDetailSheet.test.tsx`.
+- **2026-05-12 — LiveOps schemas (Task 1):** `LiveOpsEvent` / `EventInput` cohorts are **multi-select arrays** with **`All` exclusive**; **`end` is nullable** for open-ended events; added **`normalizeCohorts`**, **`formatCohorts`**, **`COHORT_OPTIONS`**, **`EventFormSchema`** (`neverEnds` + end validation). Tests: `features/liveops/types/__tests__/events.test.ts`.
+- **2026-05-12 — LiveOps calendar feedback:** intake captured for **end date = never** option and **cohort dropdowns**; spec drafted, pending review.
+- **2026-05-12 — LiveOps calendar spec:** draft ready at `docs/superpowers/specs/2026-05-12-liveops-calendar-open-ended-end-date-cohorts-design.md`.
+- **2026-05-12 — LiveOps calendar plan:** updated for multi-cohort at `docs/superpowers/plans/2026-05-12-liveops-calendar-open-ended-end-date-cohorts.md`.
+- **2026-05-12 — Worktree prep:** added `.worktrees` to `.gitignore` (uncommitted) before creating an isolated worktree.
+- **2026-05-12 — Template downloads:** **WORKING / validated** ✓ Guided **Select → Preview → Download** path delivers usable **CSV and Excel** files; prior failure track is closed. Remaining active work is **custom recurrence only** (see Current objective).
+- **2026-05-12 — Custom recurrence basis:** **COMPLETED** ✓ Added a **custom basis selector** (weekly/monthly), **days-of-week** selection for weekly basis, **monthly pattern** controls, and **combined summary** output while allowing empty optional selections. **Tests/lint/type-check** all pass.
+- **2026-05-12 — Prior feedback (scoped forward):** **Custom recurrence** must support **days-of-week** and **monthly basis** patterns with **optional sub-selections** where the model allows empty or partial choices (aligned to decisions below).
 - **2026-05-12 — Example templates modal launcher:** **COMPLETED** ✓ Replaced the inline template grid with a **compact “Browse example templates” button** that opens a **guided modal** (Select → Preview → Download). **Template preview** now lives inside the modal (no nested dialogs). **CsvDropzone** shows the launcher instead of the grid. **Tests updated** (TemplateSelector + CsvDropzone), **`npm test -- run`**, **`npm run lint`**, and **`npm run type-check`** all pass.
 - **2026-05-11 — Next.js experiments banner removal:** **COMPLETED** ✓ Removed **`experimental.optimizePackageImports`** block from **`next.config.js`**. **Verification successful:** **`npm run dev`** → clean startup (no experiments banner), **`npm run build-clean`** → clean output, **`npm run build`** → clean output, **all tests pass** (22 files, 166 tests), **type-check + lint pass**. **Only remaining warnings:** npm `devdir` (Cursor sandbox) + Node `--localstorage-file` (expected under current toolchain). **Build output now completely clean** of Next.js experiments banners.
 - **2026-05-11 — build warning cleanup (implementation):** **Plan approved**; **Node 22 pin + `build-clean` wrapper added** (`.nvmrc`, `.node-version`, `package.json` engines + `@types/node` 22.x, `scripts/build-clean.sh`, `build-clean` script). **Docs updated** (README, PROGRESS). **Prior verification** under Node **25.9.0** surfaced env/runtime warnings (see Recent findings). **Node 22 verification success** (**Node v22.22.2**, **npm v10.9.7**): `npm run build-clean`, `npm run build`, `npm run type-check`, `npm run lint`, and **`npm test -- run`** **all pass**; **`devdir`** and **`--localstorage-file`** warnings **gone**; **only** the **Next.js experiments** banner remains in output.
-- **Current focus:** **COMPLETED** — Example templates UI now launches from a **compact sidebar button** into a **guided modal** (Select → Preview → Download). Inline template grid removed. **Baseline preserved:** Node 22 build hygiene + tests/lint/type-check remain green.
+- **Current focus:** **COMPLETED** — **Custom recurrence** shipped with **basis selector**, **days-of-week**, **monthly pattern**, and **combined summary**; optional selections allowed. **Template downloads** remain working; tests/lint/type-check stay green.
 - **Scope decision (historical context):** address **all existing test and lint failures**, with **Excel template suites** as the main concentration. That track reached green verification; residual **build warnings** are the new priority.
 - **Governance (build warnings):** plan approved; implementation running in phased steps with verification before completion. **Spec:** `docs/superpowers/specs/2026-05-11-build-warning-cleanup-design.md`. **Plan:** `docs/superpowers/plans/2026-05-11-build-warning-cleanup.md`.
 - **Governance (experiments banner removal):** **Spec:** `docs/superpowers/specs/2026-05-11-experiments-banner-removal-design.md`. **Status:** **implemented** (banner removed via `next.config.js` cleanup). **Post-change dev verification:** **`npm run dev`** → http://localhost:3000.
@@ -37,25 +50,28 @@
 - **Build-warning env trace (root cause, latest):** **Node v25.9.0**, **npm v11.12.1**. **`NODE_OPTIONS`** is **not set**. **`npm_config_devdir`** **is** set in the environment (value tied to **Cursor sandbox cache**), which aligns with npm reporting **unknown env config `devdir`**. Inspected **dotfiles** and project **`.npmrc`**: **no** `devdir` and **no** `NODE_OPTIONS`—so those sources were **ruled out** for this symptom set.
 
 ### Decisions
+- **Custom recurrence (2026-05-12) — clarified and locked:**
+  - **Custom basis selector:** The UI exposes an explicit control for choosing the **basis** of the custom rule (e.g. weekly anchored on weekdays vs monthly pattern), rather than implying it only from implicit fields.
+  - **Summary combine:** The natural-language **summary** (or subtitle) reflects the **combined** basis + options in one coherent line where applicable (not fragmented hints).
+  - **Allow empty:** Where the basis allows incomplete or unset optional parts, the model and UI **permit empty** states without forcing invalid combos; validation only blocks truly inconsistent submissions.
 - **Example templates UI (2026-05-12):** **Direction** — surface example templates behind a **hamburger/menu affordance** and drive selection/application through a **guided modal** (not the previous inline/prominent-only pattern). Detailed spec/plan paths TBD when filed under normal governance.
 - **Next.js experiments banner (2026-05-11):** **Spec:** `docs/superpowers/specs/2026-05-11-experiments-banner-removal-design.md`. **Status:** **shipped** (removed `experimental.optimizePackageImports` from `next.config.js`). **Smoke:** **`npm run dev`** → **http://localhost:3000**.
 - **Batch import UI layout**: **Option C** chosen for batch-import UX.
 - **Import behavior**: prompt each time (default append).
-- **Quality bar:** retain **green** tests/lint/type-check and **silent / documented-only** build output on the pinned toolchain; **product focus:** **example templates** entry via **hamburger + guided modal** (above).
+- **Quality bar:** retain **green** tests/lint/type-check and **silent / documented-only** build output on the pinned toolchain; **current product focus:** **custom recurrence** (days-of-week + monthly basis; decisions above). **Example templates:** hamburger + guided modal remains shipped; downloads **working**.
 - **Build warning cleanup — execution baseline:** **Node 22** pin + **`build-clean`** wrapper for consistent, clean build runs (design-approved).
 
 ### Current objective
-- **COMPLETED:** Example templates now open from a **compact hamburger/sidebar button** into a **guided modal** (Select → Preview → Download). The inline grid has been removed from the sidebar, preserving template downloads and previews without layout overflow.
-- **Verified:** `npm test -- run`, `npm run lint`, and `npm run type-check` all pass after the UI refactor.
-- **Baseline preserved:** Node 22 + build-clean + experiments banner removal remain green (see State / Recent findings).
+- **COMPLETED:** Custom recurrence now supports **basis selection**, **optional weekly + monthly configuration**, and a **combined summary**. Validation allows empty optional fields. **Verification:** `npm test -- run`, `npm run lint`, and `npm run type-check` all pass after the change.
+- **Context:** Template downloads are confirmed working; no additional remediation required.
 
 ### Next actions
-1. ✅ Example templates launcher + guided modal shipped; inline grid removed.
-2. ✅ Tests, lint, and type-check run clean after the UI refactor.
-3. Optional: run a quick manual UX smoke (open modal, preview, download) on desktop.
+1. ✅ Custom recurrence basis + weekly/monthly options shipped.
+2. ✅ Tests, lint, and type-check run clean after recurrence update.
+3. Optional: manual recurrence UI smoke in the event detail sheet.
 
 ### Pending clarifications / open questions
-- None currently. The guided modal and launcher are implemented with the agreed step flow and placement.
+- **None** — **Template download** troubleshooting questions are **obsolete** (downloads confirmed working). **Custom recurrence** choices are captured under **Decisions** (**custom basis selector**, **summary combine**, **allow empty**) plus objective text for **days-of-week**, **monthly basis**, and **optional selections**.
 
 ### Recently completed (reference)
 - **Build warning cleanup + experiments banner removal** — done; see State bullets and Recent findings for verification notes.
@@ -71,6 +87,8 @@
 - **Experiments banner removal:** implemented per spec; **`npm run dev`** (**http://localhost:3000**) remains a sensible smoke check after config/UI changes.
 
 ### Recent findings
+- [x] **2026-05-12 — Dev server restart:** Cleared listeners on port **3000**; **`npm run dev`** → **http://localhost:3000**; **Ready** log confirmed (Next.js 16.2 / Turbopack).
+- **Custom recurrence verification (2026-05-12):** `npm test -- run`, `npm run lint`, `npm run type-check` — **all pass** after adding custom basis + weekly/monthly support.
 - **Example templates modal verification (2026-05-12):** `npm test -- run`, `npm run lint`, `npm run type-check` — **all pass** after moving templates into the guided modal launcher.
 - **Final verification success (Node v22.22.2, npm v10.9.7):** `npm run build-clean`, `npm run build`, `npm run dev`, `npm run type-check`, `npm run lint`, `npm test -- run` — **all pass**. **Next.js experiments banner eliminated** by removing `experimental.optimizePackageImports` from `next.config.js`. **Remaining warnings documented:** npm `devdir` (Cursor sandbox), Node `--localstorage-file` (runtime env) — both expected and non-blocking. **Build output now completely clean** of unintended warnings.
 - **Verification run (Node 25.9.0, historical):** same commands succeeded; **`npm_config_devdir`** and **`--localstorage-file`** appeared—attributed to non-LTS runtime/env injection vs Node 22 baseline.

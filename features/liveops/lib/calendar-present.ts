@@ -11,7 +11,12 @@ import {
   CheckCircle2,
 } from 'lucide-react'
 
-import type { EventStatus, EventType, LiveOpsEvent } from '../types/events'
+import {
+  formatCohorts,
+  type EventStatus,
+  type EventType,
+  type LiveOpsEvent,
+} from '../types/events'
 
 export type EventTypeMeta = {
   label: string
@@ -51,6 +56,8 @@ export function getStatusMeta(status: EventStatus | string): StatusMeta {
 export function formatEventA11yLabel(event: LiveOpsEvent): string {
   const type = getEventTypeMeta(event.eventType).label
   const status = getStatusMeta(event.status).label
-  return `${event.title}. Type: ${type}. Status: ${status}. Cohort: ${event.cohort}. Placement: ${event.placement}.`
+  const cohorts = formatCohorts(event.cohort)
+  const endLabel = event.end ? '' : ' Never ends.'
+  return `${event.title}. Type: ${type}. Status: ${status}. Cohort: ${cohorts}. Placement: ${event.placement}.${endLabel}`
 }
 

@@ -1,12 +1,16 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useState } from 'react'
+import dayjs from 'dayjs'
+import utc from 'dayjs/plugin/utc'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import { DateTimePicker } from '@/components/ui/date-time-picker'
 import type { RecurrenceConfig as RecurrenceConfigModel } from '../types/events'
-import { formatForInput } from '../lib/date-utils'
+
+dayjs.extend(utc)
 
 interface RecurrenceConfigProps {
   value: RecurrenceConfigModel | undefined
@@ -24,7 +28,31 @@ const DAYS_OF_WEEK = [
   { value: 6, label: 'Saturday', short: 'Sat' },
 ]
 
+type CustomBasis = 'weekly' | 'monthly'
+
+function getCustomBasis(config: RecurrenceConfigModel | undefined, fallback: CustomBasis = 'weekly'): CustomBasis {
+  if (config?.daysOfWeek?.length) {
+    return 'weekly'
+  }
+  if (config?.monthlyPattern || config?.dayOfMonth) {
+    return 'monthly'
+  }
+  return fallback
+}
+
 export function RecurrenceConfig({ value, onChange, className }: RecurrenceConfigProps) {
+  const [customBasis, setCustomBasis] = useState<CustomBasis>(() => getCustomBasis(value))
+
+  useEffect(() => {
+    if (value?.frequency !== 'custom') return
+    setCustomBasis(prev => getCustomBasis(value, prev))
+  }, [value?.frequency, value?.daysOfWeek, value?.monthlyPattern, value?.dayOfMonth])
+
+  const showWeeklyControls =
+    value?.frequency === 'weekly' || (value?.frequency === 'custom' && customBasis === 'weekly')
+  const showMonthlyControls =
+    value?.frequency === 'monthly' || (value?.frequency === 'custom' && customBasis === 'monthly')
+
   const handleFrequencyChange = (frequency: RecurrenceConfigModel['frequency']) => {
     const newConfig: RecurrenceConfigModel = {
       frequency,
@@ -34,15 +62,22 @@ export function RecurrenceConfig({ value, onChange, className }: RecurrenceConfi
     }
     
     // Reset type-specific fields when frequency changes
-    if (frequency !== 'weekly') {
+    if (frequency === 'weekly') {
+      delete newConfig.dayOfMonth
+      delete newConfig.monthlyPattern
+    } else if (frequency === 'monthly') {
       delete newConfig.daysOfWeek
-    }
-    if (frequency !== 'monthly') {
+    } else if (frequency !== 'custom') {
+      delete newConfig.daysOfWeek
       delete newConfig.dayOfMonth
       delete newConfig.monthlyPattern
     }
     
     onChange(newConfig)
+
+    if (frequency === 'custom') {
+      setCustomBasis(getCustomBasis(value))
+    }
   }
 
   const handleIntervalChange = (interval: string) => {
@@ -76,9 +111,9 @@ export function RecurrenceConfig({ value, onChange, className }: RecurrenceConfi
     }
   }
 
-  const handleUntilChange = (until: string) => {
+  const handleUntilChange = (until: string | null) => {
     if (value) {
-      onChange({ ...value, until: until || undefined, count: undefined })
+      onChange({ ...value, until: until ?? undefined, count: undefined })
     }
   }
 
@@ -131,7 +166,7 @@ export function RecurrenceConfig({ value, onChange, className }: RecurrenceConfi
       </div>
 
       {/* Frequency Selection */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className={value.frequency === 'custom' ? 'grid gap-4 md:grid-cols-3' : 'grid grid-cols-2 gap-4'}>
         <div>
           <Label className="text-xs">Repeat</Label>
           <Select value={value.frequency} onValueChange={handleFrequencyChange}>
@@ -146,6 +181,24 @@ export function RecurrenceConfig({ value, onChange, className }: RecurrenceConfi
             </SelectContent>
           </Select>
         </div>
+
+        {value.frequency === 'custom' && (
+          <div>
+            <Label className="text-xs">Custom basis</Label>
+            <Select value={customBasis} onValueChange={(basis) => setCustomBasis(basis as CustomBasis)}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="weekly">Weekly basis</SelectItem>
+                <SelectItem value="monthly">Monthly basis</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Switch to configure both weekly and monthly options.
+            </p>
+          </div>
+        )}
 
         <div>
           <Label className="text-xs">Every</Label>
@@ -169,7 +222,7 @@ export function RecurrenceConfig({ value, onChange, className }: RecurrenceConfi
       </div>
 
       {/* Weekly Specific: Days of Week */}
-      {value.frequency === 'weekly' && (
+      {showWeeklyControls && (
         <div>
           <Label className="text-xs mb-2 block">On these days</Label>
           <div className="flex gap-2 flex-wrap">
@@ -193,7 +246,7 @@ export function RecurrenceConfig({ value, onChange, className }: RecurrenceConfi
       )}
 
       {/* Monthly Specific: Day of Month */}
-      {value.frequency === 'monthly' && (
+      {showMonthlyControls && (
         <div className="space-y-3">
           <div>
             <Label className="text-xs">Monthly pattern</Label>
@@ -232,12 +285,12 @@ export function RecurrenceConfig({ value, onChange, className }: RecurrenceConfi
       <div>
         <Label className="text-xs mb-2 block">End condition</Label>
         <div className="space-y-2">
-          <div className="flex items-center gap-2">
-            <Label className="text-xs w-12">Until:</Label>
-            <Input
-              type="date"
-              value={value.until ? formatForInput(value.until) : ''}
-              onChange={(e) => handleUntilChange(e.target.value)}
+          <div className="flex items-start gap-2">
+            <Label className="text-xs w-12 pt-2">Until:</Label>
+            <DateTimePicker
+              label="Until"
+              value={value.until ?? null}
+              onChange={handleUntilChange}
               className="flex-1"
             />
           </div>
@@ -290,12 +343,35 @@ function getRecurrenceSummary(config: RecurrenceConfigModel): string {
       summary += ` on day ${dayOfMonth}`
     }
   } else {
-    summary = `Every ${interval} custom intervals`
+    summary = `Every ${interval} custom interval${interval === 1 ? '' : 's'}`
+
+    const customDetails: string[] = []
+    if (daysOfWeek?.length) {
+      const dayNames = daysOfWeek.map((d: number) => DAYS_OF_WEEK[d]?.short).filter(Boolean).join(', ')
+      if (dayNames) {
+        customDetails.push(`on ${dayNames}`)
+      }
+    }
+
+    const hasMonthlyFields = monthlyPattern || dayOfMonth
+    if (hasMonthlyFields) {
+      if (monthlyPattern === 'date' || (!monthlyPattern && dayOfMonth)) {
+        if (dayOfMonth) {
+          customDetails.push(`monthly on day ${dayOfMonth}`)
+        }
+      } else if (monthlyPattern === 'weekday') {
+        customDetails.push('monthly on weekday')
+      }
+    }
+
+    if (customDetails.length > 0) {
+      summary += ` ${customDetails.join('; ')}`
+    }
   }
   
   // End condition
   if (until) {
-    summary += ` until ${new Date(until).toLocaleDateString()}`
+    summary += ` until ${dayjs.utc(until).format('MMM D, YYYY HH:mm')}`
   } else if (count) {
     summary += ` for ${count} occurrence${count === 1 ? '' : 's'}`
   }

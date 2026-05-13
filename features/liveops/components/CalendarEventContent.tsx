@@ -3,13 +3,14 @@
 import React from 'react'
 import { cn } from '@/lib/utils'
 import type { EventStatus, EventType } from '../types/events'
-import { getEventTypeMeta, getStatusMeta } from '../lib/calendar-present'
+import { getStatusMeta } from '../lib/calendar-present'
 
 export function CalendarEventContent({
   title,
   eventType,
   status,
   cohort,
+  isOpenEnded = false,
   a11yLabel,
   className,
 }: {
@@ -17,13 +18,11 @@ export function CalendarEventContent({
   eventType: EventType | string
   status: EventStatus | string
   cohort: string
+  isOpenEnded?: boolean
   a11yLabel?: string
   className?: string
 }) {
-  const typeMeta = getEventTypeMeta(eventType)
   const statusMeta = getStatusMeta(status)
-
-  const TypeIcon = typeMeta.Icon
   const StatusIcon = statusMeta.Icon
 
   return (
@@ -31,13 +30,19 @@ export function CalendarEventContent({
       {a11yLabel ? <span className="sr-only">{a11yLabel}</span> : null}
       <div className="fc-event-title-container">
         <div className="fc-event-title fc-sticky flex items-center gap-1">
-          <TypeIcon className="h-3.5 w-3.5 opacity-90" aria-hidden="true" />
-          <span className="truncate">{title}</span>
+          <span className="event-type-dot" data-event-type={String(eventType)} aria-hidden="true" />
+          <span className="event-title-text truncate">{title}</span>
         </div>
 
         <div className="fc-event-subtitle mt-0.5 flex items-center gap-1.5">
-          <span className="truncate text-[11px] text-muted-foreground">{cohort}</span>
-          <span className="text-muted-foreground/50">•</span>
+          <span className="truncate text-[11px] text-foreground/70">{cohort}</span>
+          {isOpenEnded ? (
+            <>
+              <span className="text-foreground/50">•</span>
+              <span className="shrink-0 text-[11px] text-foreground/70">Never</span>
+            </>
+          ) : null}
+          <span className="text-foreground/50">•</span>
           <span className={cn('status-badge', `status-${String(status).toLowerCase()}`)}>
             <StatusIcon className="h-3 w-3" aria-hidden="true" />
             <span>{String(status)}</span>

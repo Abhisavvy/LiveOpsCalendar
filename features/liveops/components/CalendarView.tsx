@@ -11,6 +11,7 @@ import { LiveOpsEvent } from '../types/events'
 import { useEventStore } from '../hooks/useEventStore'
 import { useCalendarEvents, type CalendarExtendedProps } from '../hooks/useCalendarEvents'
 import { addDurationToDate } from '../lib/date-utils'
+import { getEventDropUpdate } from '../lib/calendar-utils'
 import { useToast } from '@/hooks/use-toast'
 import { CalendarEventContent } from './CalendarEventContent'
 import { formatEventA11yLabel } from '../lib/calendar-present'
@@ -61,13 +62,9 @@ export function CalendarView({
       
       if (liveOpsEvent) {
         const newStart = dropInfo.event.startStr
-        const originalDuration = new Date(liveOpsEvent.end).getTime() - new Date(liveOpsEvent.start).getTime()
-        const newEnd = new Date(new Date(newStart).getTime() + originalDuration).toISOString()
-        
-        const success = updateEvent(liveOpsEvent.id, {
-          start: newStart,
-          end: newEnd,
-        })
+        const updates = getEventDropUpdate(liveOpsEvent, newStart)
+
+        const success = updateEvent(liveOpsEvent.id, updates)
         
         if (success) {
           toast({
@@ -125,6 +122,7 @@ export function CalendarView({
         eventType={eventType}
         status={status}
         cohort={cohort}
+        isOpenEnded={Boolean(props?.isOpenEnded)}
         a11yLabel={a11yLabel}
       />
     )
