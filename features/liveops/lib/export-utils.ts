@@ -1,5 +1,5 @@
 import Papa from 'papaparse'
-import { LiveOpsEvent, ExportConfig } from '../types/events'
+import { LiveOpsEvent, ExportConfig, formatCohorts } from '../types/events'
 import { formatDate, calculateDuration } from './date-utils'
 
 /**
@@ -24,6 +24,9 @@ export function exportEventsToCSV(
     
     Object.entries(columnMapping).forEach(([csvColumn, eventField]) => {
       switch (eventField) {
+        case 'id':
+          row[csvColumn] = event.id
+          break
         case 'title':
           row[csvColumn] = event.title
           break
@@ -44,7 +47,7 @@ export function exportEventsToCSV(
           row[csvColumn] = duration.readable
           break
         case 'cohort':
-          row[csvColumn] = event.cohort
+          row[csvColumn] = formatCohorts(event.cohort)
           break
         case 'eventType':
           row[csvColumn] = event.eventType
@@ -64,16 +67,43 @@ export function exportEventsToCSV(
         case 'updatedAt':
           row[csvColumn] = formatDate(event.updatedAt, dateFormat || 'YYYY-MM-DD HH:mm:ss')
           break
+        case 'frequency':
         case 'recurrenceFrequency':
           row[csvColumn] = event.recurrence?.frequency || ''
           break
+        case 'interval':
         case 'recurrenceInterval':
-          row[csvColumn] = event.recurrence?.interval?.toString() || ''
+          row[csvColumn] = event.recurrence?.interval?.toString() ?? ''
           break
-        case 'recurrenceUntil':
-          row[csvColumn] = event.recurrence?.until 
-            ? formatDate(event.recurrence.until, dateFormat || 'YYYY-MM-DD') 
+        case 'daysOfWeek':
+          row[csvColumn] =
+            event.recurrence?.daysOfWeek?.length ?
+              event.recurrence.daysOfWeek.join(',')
             : ''
+          break
+        case 'dayOfMonth':
+          row[csvColumn] = event.recurrence?.dayOfMonth?.toString() ?? ''
+          break
+        case 'monthlyPattern':
+          row[csvColumn] = event.recurrence?.monthlyPattern ?? ''
+          break
+        case 'until':
+        case 'recurrenceUntil':
+          row[csvColumn] = event.recurrence?.until
+            ? formatDate(event.recurrence.until, dateFormat || 'YYYY-MM-DD')
+            : ''
+          break
+        case 'count':
+          row[csvColumn] = event.recurrence?.count?.toString() ?? ''
+          break
+        case 'playerType':
+          row[csvColumn] = event.playerType
+          break
+        case 'osType':
+          row[csvColumn] = event.osType
+          break
+        case 'client':
+          row[csvColumn] = event.client
           break
         default:
           row[csvColumn] = ''
@@ -135,9 +165,16 @@ export function getExtendedColumnMapping(): Record<string, string> {
     'Status': 'status',
     'Created At': 'createdAt',
     'Updated At': 'updatedAt',
-    'Recurrence Frequency': 'recurrenceFrequency',
-    'Recurrence Interval': 'recurrenceInterval',
-    'Recurrence Until': 'recurrenceUntil',
+    'Player Type': 'playerType',
+    'OS': 'osType',
+    'Client': 'client',
+    frequency: 'frequency',
+    interval: 'interval',
+    daysOfWeek: 'daysOfWeek',
+    dayOfMonth: 'dayOfMonth',
+    monthlyPattern: 'monthlyPattern',
+    until: 'until',
+    count: 'count',
   }
 }
 

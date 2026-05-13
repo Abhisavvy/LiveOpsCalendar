@@ -1,9 +1,9 @@
 import type { LucideIcon } from 'lucide-react'
 import {
   CircleDollarSign,
-  Target,
   RefreshCcw,
-  Settings2,
+  Repeat,
+  Sparkles,
   HelpCircle,
   Pencil,
   CalendarClock,
@@ -32,9 +32,13 @@ export type StatusMeta = {
 
 const EVENT_TYPE_META: Record<EventType, EventTypeMeta> = {
   IAP: { label: 'IAP', Icon: CircleDollarSign, colorVar: '--event-iap' },
-  Progression: { label: 'Progression', Icon: Target, colorVar: '--event-progression' },
   Retention: { label: 'Retention', Icon: RefreshCcw, colorVar: '--event-retention' },
-  System: { label: 'System', Icon: Settings2, colorVar: '--event-system' },
+  'Rolling Retention': {
+    label: 'Rolling Retention',
+    Icon: Repeat,
+    colorVar: '--event-rolling-retention',
+  },
+  Engagement: { label: 'Engagement', Icon: Sparkles, colorVar: '--event-engagement' },
   Unknown: { label: 'Unknown', Icon: HelpCircle, colorVar: '--event-unknown' },
 }
 

@@ -8,9 +8,14 @@ import {
   EventType,
   EventStatus,
   DurationOption,
-  DURATION_OPTIONS
+  DURATION_OPTIONS,
+  normalizeCohorts,
+  normalizePlayerType,
+  normalizeOsType,
+  normalizeClient,
 } from '../types/events'
 import { parseToISO, addDurationToDate, nowISO } from '../lib/date-utils'
+import { parseRecurrenceFromCsvRow, pickCsvCell } from '../lib/csv-import-fields'
 
 // Batch processing configuration
 const BATCH_SIZE = 200
@@ -26,6 +31,7 @@ export interface ProcessFilePayload {
   fileContent: string
   fileName: string
   fileSize: number
+  fileType?: string
 }
 
 export interface ProgressPayload {
@@ -69,6 +75,7 @@ export interface CompletePayload {
 
 // Security and validation functions (duplicated from csv-processor.ts for worker isolation)
 const FORMULA_PATTERNS = /^[=+\-@]/
+const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
 const MAX_ROWS = 10000
 
 function isSuspiciousFormula(value: string): boolean {
@@ -110,6 +117,21 @@ function mapDurationOption(durationStr: string): DurationOption {
   if (normalized.includes('1m') || normalized.includes('1month')) return '1m'
   
   return '1d'
+}
+
+export function parseCsvContent(fileContent: string): Promise<Papa.ParseResult<CsvRow>> {
+  return new Promise((resolve, reject) => {
+    Papa.parse(fileContent, {
+      header: true,
+      skipEmptyLines: true,
+      transformHeader: (header: string) => header.trim(),
+      complete: resolve,
+      error: (error: unknown) => {
+        const message = error instanceof Error ? error.message : 'Unknown parsing error'
+        reject(new Error(message))
+      },
+    })
+  })
 }
 
 // Field extraction functions
@@ -223,6 +245,12 @@ function transformRowToEvent(row: CsvRow, rowIndex: number): { event?: LiveOpsEv
   const eventType = extractEventType(row)
   const placement = extractPlacement(row)
   const description = extractDescription(row)
+  const recurrenceParsed = parseRecurrenceFromCsvRow(row, rowIndex)
+  errors.push(...recurrenceParsed.errors)
+
+  const playerType = normalizePlayerType(pickCsvCell(row, 'Player Type'))
+  const osType = normalizeOsType(pickCsvCell(row, 'OS'))
+  const client = normalizeClient(pickCsvCell(row, 'Client'))
   
   // Validate required fields
   if (!title || title === 'Untitled Event') {
@@ -258,13 +286,19 @@ function transformRowToEvent(row: CsvRow, rowIndex: number): { event?: LiveOpsEv
     title,
     start: startDateISO,
     end: endDateISO,
-    cohort,
+    cohort: normalizeCohorts(cohort),
     eventType,
+    playerType,
+    osType,
+    client,
     placement,
     description,
     status: 'Draft' as EventStatus,
     createdAt: nowISO(),
     updatedAt: nowISO(),
+    ...(recurrenceParsed.recurrence ?
+      { recurrence: recurrenceParsed.recurrence }
+    : {}),
   }
   
   return { event, errors }
@@ -315,44 +349,48 @@ function processBatch(
 }
 
 // Worker message handler
-self.addEventListener('message', async (event: MessageEvent<BatchProcessorMessage>) => {
-  const { type, payload } = event.data
-  
-  if (type === 'PROCESS_FILE') {
-    const { fileContent } = payload as ProcessFilePayload
-    const processingStartTime = performance.now()
+if (typeof self !== 'undefined') {
+  self.addEventListener('message', async (event: MessageEvent<BatchProcessorMessage>) => {
+    const { type, payload } = event.data
     
-    try {
-      // Parse CSV with Papa Parse
-      const parseResult = await new Promise<Papa.ParseResult<CsvRow>>((resolve) => {
-        Papa.parse(fileContent, {
-          header: true,
-          skipEmptyLines: true,
-          transformHeader: (header: string) => header.trim(),
-          complete: resolve,
-          error: (error: unknown) => {
-            const message = error instanceof Error ? error.message : 'Unknown parsing error'
-            self.postMessage({
-              type: 'ERROR',
-              payload: { message: `CSV parsing failed: ${message}` }
-            })
-          },
-        })
-      })
-      
-      const rows = parseResult.data
-      const totalRows = rows.length
-      
-      // Validate row count
-      if (totalRows > MAX_ROWS) {
+    if (type === 'PROCESS_FILE') {
+      const { fileContent, fileName, fileSize, fileType } = payload as ProcessFilePayload
+      const processingStartTime = performance.now()
+
+      if (fileSize > MAX_FILE_SIZE) {
         self.postMessage({
           type: 'ERROR',
-          payload: { 
-            message: `Too many rows. Maximum allowed: ${MAX_ROWS}, found: ${totalRows}` 
-          }
+          payload: {
+            message: `File size too large. Maximum allowed: ${MAX_FILE_SIZE / 1024 / 1024}MB`,
+          },
         })
         return
       }
+
+      const invalidType = !fileName.toLowerCase().endsWith('.csv') && fileType !== 'text/csv'
+      if (invalidType) {
+        self.postMessage({
+          type: 'ERROR',
+          payload: { message: 'Invalid file type. Please upload a CSV file.' },
+        })
+        return
+      }
+      
+      try {
+        const parseResult = await parseCsvContent(fileContent)
+        const rows = parseResult.data
+        const totalRows = rows.length
+        
+        // Validate row count
+        if (totalRows > MAX_ROWS) {
+          self.postMessage({
+            type: 'ERROR',
+            payload: { 
+              message: `Too many rows. Maximum allowed: ${MAX_ROWS}, found: ${totalRows}` 
+            }
+          })
+          return
+        }
       
       const totalBatches = Math.ceil(totalRows / BATCH_SIZE)
       const allEvents: LiveOpsEvent[] = []
@@ -441,15 +479,16 @@ self.addEventListener('message', async (event: MessageEvent<BatchProcessorMessag
         } as CompletePayload
       })
       
-    } catch (error) {
-      self.postMessage({
-        type: 'ERROR',
-        payload: { 
-          message: `Processing failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
-        }
-      })
+      } catch (error) {
+        self.postMessage({
+          type: 'ERROR',
+          payload: { 
+            message: `Processing failed: ${error instanceof Error ? error.message : 'Unknown error'}` 
+          }
+        })
+      }
     }
-  }
-})
+  })
+}
 
 // Note: Types are already exported as interfaces above and will be available for import

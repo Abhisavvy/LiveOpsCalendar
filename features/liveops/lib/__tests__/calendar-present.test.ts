@@ -4,7 +4,8 @@ import { getEventTypeMeta, getStatusMeta, formatEventA11yLabel } from '../calend
 describe('calendar-present', () => {
   it('returns meta for known event types', () => {
     expect(getEventTypeMeta('IAP').label).toBe('IAP')
-    expect(getEventTypeMeta('Progression').label).toBe('Progression')
+    expect(getEventTypeMeta('Rolling Retention').label).toBe('Rolling Retention')
+    expect(getEventTypeMeta('Engagement').label).toBe('Engagement')
   })
 
   it('falls back for unknown event types', () => {

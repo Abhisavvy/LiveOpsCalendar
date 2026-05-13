@@ -1,17 +1,23 @@
 import Papa from 'papaparse'
-import { 
-  CsvRow, 
-  LiveOpsEvent, 
-  CsvProcessingError, 
+import {
+  CsvRow,
+  LiveOpsEvent,
+  CsvProcessingError,
   CsvProcessingResult,
   createEventId,
   isEventType,
   EventType,
   EventStatus,
   DurationOption,
-  DURATION_OPTIONS
+  DURATION_OPTIONS,
+  normalizeCohorts,
+  normalizePlayerType,
+  normalizeOsType,
+  normalizeClient,
+  formatCohorts,
 } from '../types/events'
 import { parseToISO, addDurationToDate, nowISO } from './date-utils'
+import { parseRecurrenceFromCsvRow, pickCsvCell } from './csv-import-fields'
 
 // CSV Security: Check for formula injection
 const FORMULA_PATTERNS = /^[=+\-@]/
@@ -207,6 +213,12 @@ function transformRowToEvent(row: CsvRow, rowIndex: number): { event?: LiveOpsEv
   const eventType = extractEventType(row)
   const placement = extractPlacement(row)
   const description = extractDescription(row)
+  const recurrenceParsed = parseRecurrenceFromCsvRow(row, rowIndex)
+  errors.push(...recurrenceParsed.errors)
+
+  const playerType = normalizePlayerType(pickCsvCell(row, 'Player Type'))
+  const osType = normalizeOsType(pickCsvCell(row, 'OS'))
+  const client = normalizeClient(pickCsvCell(row, 'Client'))
   
   // Validate required fields
   if (!title || title === 'Untitled Event') {
@@ -243,13 +255,19 @@ function transformRowToEvent(row: CsvRow, rowIndex: number): { event?: LiveOpsEv
     title,
     start: startDateISO,
     end: endDateISO,
-    cohort,
+    cohort: normalizeCohorts(cohort),
     eventType,
+    playerType,
+    osType,
+    client,
     placement,
     description,
     status: 'Draft' as EventStatus,
     createdAt: nowISO(),
     updatedAt: nowISO(),
+    ...(recurrenceParsed.recurrence ?
+      { recurrence: recurrenceParsed.recurrence }
+    : {}),
   }
   
   return { event, errors }
@@ -391,8 +409,18 @@ export function generateSampleCsv(): string {
     'Pop-up type',
     'Lobby Icon | Where',
     'Conditions/ Intent',
+    'Player Type',
+    'OS',
+    'Client',
+    'frequency',
+    'interval',
+    'daysOfWeek',
+    'dayOfMonth',
+    'monthlyPattern',
+    'until',
+    'count',
   ]
-  
+
   const sampleRows = [
     [
       'Move Master Promo',
@@ -402,6 +430,16 @@ export function generateSampleCsv(): string {
       'IAP',
       'Homescreen | Left',
       'Play 50 moves to earn 500 coins and unlock premium features',
+      'All',
+      'All',
+      'Kinoa',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
     ],
     [
       'Daily Login Bonus',
@@ -411,23 +449,44 @@ export function generateSampleCsv(): string {
       'Retention',
       'Homescreen | Right',
       'Login daily for 7 days to get increasing rewards',
+      'Payer',
+      'Android',
+      'In-game',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
+      '',
     ],
     [
-      'Weekend Tournament',
+      'Weekly Challenge',
       '2024-01-20',
       '2d',
       'Repeat Payers',
-      'Progression',
+      'Engagement',
       'Events Tab',
       'Compete with other players to win exclusive prizes',
+      'Non payer',
+      'iOS',
+      'Kinoa',
+      'weekly',
+      '1',
+      '1,3,5',
+      '',
+      '',
+      '',
+      '',
+      '',
     ],
   ]
   
   const csvContent = [
     headers.join(','),
-    ...sampleRows.map(row => row.map(cell => `"${cell}"`).join(',')),
+    ...sampleRows.map((row) => row.map((cell) => `"${cell}"`).join(',')),
   ].join('\n')
-  
+
   return csvContent
 }
 
@@ -439,39 +498,103 @@ export function exportEventsToCsv(events: LiveOpsEvent[], originalColumnNames: b
     throw new Error('No events to export')
   }
   
-  const headers = originalColumnNames 
-    ? ['Flow Name', 'Starting Date', 'Timer', 'Cohort', 'Pop-up type', 'Lobby Icon | Where', 'Conditions/ Intent']
-    : ['Title', 'Start Date', 'End Date', 'Cohort', 'Event Type', 'Placement', 'Description', 'Status']
-    
+  const headers =
+    originalColumnNames ?
+      [
+        'Flow Name',
+        'Starting Date',
+        'Timer',
+        'Cohort',
+        'Pop-up type',
+        'Lobby Icon | Where',
+        'Conditions/ Intent',
+        'Player Type',
+        'OS',
+        'Client',
+        'frequency',
+        'interval',
+        'daysOfWeek',
+        'dayOfMonth',
+        'monthlyPattern',
+        'until',
+        'count',
+      ]
+    : [
+        'Title',
+        'Start Date',
+        'End Date',
+        'Cohort',
+        'Event Type',
+        'Placement',
+        'Description',
+        'Status',
+        'Player Type',
+        'OS',
+        'Client',
+        'frequency',
+        'interval',
+        'daysOfWeek',
+        'dayOfMonth',
+        'monthlyPattern',
+        'until',
+        'count',
+      ]
+
+  const recurrenceCells = (event: LiveOpsEvent) =>
+    [
+      event.recurrence?.frequency ?? '',
+      event.recurrence?.interval?.toString() ?? '',
+      event.recurrence?.daysOfWeek?.length ?
+        event.recurrence.daysOfWeek.join(',')
+      : '',
+      event.recurrence?.dayOfMonth?.toString() ?? '',
+      event.recurrence?.monthlyPattern ?? '',
+      event.recurrence?.until ? event.recurrence.until.split('T')[0] ?? '' : '',
+      event.recurrence?.count?.toString() ?? '',
+    ] as const
+
   const rows = events.map(event => {
     if (originalColumnNames) {
-      // Calculate duration from start/end dates
       const startDate = new Date(event.start)
-      const endDate = new Date(event.end)
-      const durationHours = Math.round((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60))
-      const durationOption = DURATION_OPTIONS.find(opt => opt.hours === durationHours)?.value || '1d'
-      
+      const endDate = event.end ? new Date(event.end) : startDate
+      const durationHours = Math.round(
+        (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60)
+      )
+      const durationOption =
+        DURATION_OPTIONS.find(opt => opt.hours === durationHours)?.value ?? '1d'
+
       return [
         event.title,
-        startDate.toISOString().split('T')[0], // YYYY-MM-DD format
+        startDate.toISOString().split('T')[0],
         durationOption,
-        event.cohort,
+        formatCohorts(event.cohort),
         event.eventType,
         event.placement,
         event.description,
-      ]
-    } else {
-      return [
-        event.title,
-        event.start.split('T')[0], // YYYY-MM-DD format
-        event.end.split('T')[0],   // YYYY-MM-DD format
-        event.cohort,
-        event.eventType,
-        event.placement,
-        event.description,
-        event.status,
+        event.playerType,
+        event.osType,
+        event.client,
+        ...recurrenceCells(event),
       ]
     }
+
+    const endSlice =
+      event.end ? event.end.split('T')[0] : event.start.split('T')[0]
+
+    return [
+      event.title,
+      event.start.split('T')[0],
+      endSlice,
+      formatCohorts(event.cohort),
+      event.eventType,
+      event.placement,
+      event.description,
+      event.status,
+      event.playerType,
+      event.osType,
+      event.client,
+      ...recurrenceCells(event),
+    ]
   })
   
   // Use Papa Parse to generate clean CSV

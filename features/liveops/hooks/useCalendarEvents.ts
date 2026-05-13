@@ -24,31 +24,36 @@ export function useCalendarEvents() {
   const filteredEvents = useEventStore(state => state.filteredEvents)
   
   const calendarEvents = useMemo<EventInput[]>(() => {
-    return filteredEvents.map((event): EventInput => ({
-      id: event.id,
-      title: event.title,
-      start: event.start,
-      end: getDisplayEnd(event.end),
-      classNames: [
-        `event-${event.eventType.toLowerCase()}`,
-        `status-${event.status.toLowerCase()}`,
-        'fc-event-liveops'
-      ],
-      extendedProps: {
-        eventType: event.eventType,
-        status: event.status,
-        cohort: formatCohorts(event.cohort),
-        placement: event.placement,
-        description: event.description,
-        recurrence: event.recurrence,
-        isOpenEnded: event.end === null,
-        liveOpsData: event,
-      } satisfies CalendarExtendedProps,
-      // Make events draggable for rescheduling
-      editable: true,
-      // Custom display
-      display: 'block',
-    }))
+    return filteredEvents.map((event): EventInput => {
+      const eventTypeClass = `event-${event.eventType.toLowerCase().replace(/\s+/g, '-')}`
+      const clientValue = event.client ?? 'Kinoa'
+      const clientClass = `client-${clientValue.toLowerCase().replace(/\s+/g, '-')}`
+      return {
+        id: event.id,
+        title: event.title,
+        start: event.start,
+        end: getDisplayEnd(event.end),
+        classNames: [
+          eventTypeClass,
+          clientClass,
+          'fc-event-liveops',
+        ],
+        extendedProps: {
+          eventType: event.eventType,
+          status: event.status,
+          cohort: formatCohorts(event.cohort),
+          placement: event.placement,
+          description: event.description,
+          recurrence: event.recurrence,
+          isOpenEnded: event.end === null,
+          liveOpsData: event,
+        } satisfies CalendarExtendedProps,
+        // Make events draggable for rescheduling
+        editable: true,
+        // Custom display
+        display: 'block',
+      }
+    })
   }, [filteredEvents])
 
   return {

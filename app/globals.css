@@ -29,10 +29,16 @@
     
     /* LiveOps Event Type Colors */
     --event-iap: 142.1 76.2% 36.3%; /* Emerald */
-    --event-progression: 221.2 83.2% 53.3%; /* Blue */
     --event-retention: 262.1 83.3% 57.8%; /* Violet */
-    --event-system: 43.3 96.4% 56.3%; /* Yellow */
+    --event-rolling-retention: 199 89% 48%; /* Cyan */
+    --event-engagement: 327 73% 54%; /* Pink */
     --event-unknown: 215 20.2% 65.1%; /* Gray */
+
+    /* LiveOps Client Colors */
+    --client-kinoa: 210 90% 55%; /* Blue */
+    --client-in-game: 270 75% 60%; /* Purple */
+    --client-kinoa-alpha: 0.22;
+    --client-in-game-alpha: 1;
     
     /* Status Colors */
     --status-draft: 215 20.2% 65.1%; /* Gray */
@@ -130,9 +136,12 @@
   }
   
   .fc-event {
+    --event-bg: hsl(var(--background) / 0.35);
     border-radius: 4px;
     border-width: 2px;
     border-left-width: 4px;
+    border-color: var(--event-border, hsl(var(--border)));
+    background-color: var(--event-bg);
     font-weight: 500;
     font-size: 0.875rem;
     box-shadow: none;
@@ -191,19 +200,19 @@
     white-space: nowrap;
   }
 
-  .status-draft {
+  .status-badge.status-draft {
     border-color: hsl(var(--status-draft) / 0.4);
     color: hsl(var(--status-draft));
   }
-  .status-scheduled {
+  .status-badge.status-scheduled {
     border-color: hsl(var(--status-scheduled) / 0.4);
     color: hsl(var(--status-scheduled));
   }
-  .status-active {
+  .status-badge.status-active {
     border-color: hsl(var(--status-active) / 0.4);
     color: hsl(var(--status-active));
   }
-  .status-ended {
+  .status-badge.status-ended {
     border-color: hsl(var(--status-ended) / 0.4);
     color: hsl(var(--status-ended));
   }
@@ -211,37 +220,35 @@
   /* Event Type Colors */
   .fc-event.event-iap {
     --event-accent: hsl(var(--event-iap));
-    background-color: hsl(var(--event-iap) / 0.2);
-    border-color: hsl(var(--event-iap));
-    color: hsl(var(--foreground));
+    --event-border: hsl(var(--event-iap));
   }
-  
-  .fc-event.event-progression {
-    --event-accent: hsl(var(--event-progression));
-    background-color: hsl(var(--event-progression) / 0.2);
-    border-color: hsl(var(--event-progression));
-    color: hsl(var(--foreground));
-  }
-  
+
   .fc-event.event-retention {
     --event-accent: hsl(var(--event-retention));
-    background-color: hsl(var(--event-retention) / 0.2);
-    border-color: hsl(var(--event-retention));
-    color: hsl(var(--foreground));
+    --event-border: hsl(var(--event-retention));
   }
-  
-  .fc-event.event-system {
-    --event-accent: hsl(var(--event-system));
-    background-color: hsl(var(--event-system) / 0.2);
-    border-color: hsl(var(--event-system));
-    color: hsl(var(--foreground));
+
+  .fc-event.event-rolling-retention {
+    --event-accent: hsl(var(--event-rolling-retention));
+    --event-border: hsl(var(--event-rolling-retention));
   }
-  
+
+  .fc-event.event-engagement {
+    --event-accent: hsl(var(--event-engagement));
+    --event-border: hsl(var(--event-engagement));
+  }
+
   .fc-event.event-unknown {
     --event-accent: hsl(var(--event-unknown));
-    background-color: hsl(var(--event-unknown) / 0.2);
-    border-color: hsl(var(--event-unknown));
-    color: hsl(var(--foreground));
+    --event-border: hsl(var(--event-unknown));
+  }
+
+  .fc-event.client-kinoa {
+    --event-bg: hsl(var(--client-kinoa) / var(--client-kinoa-alpha));
+  }
+
+  .fc-event.client-in-game {
+    --event-bg: hsl(var(--client-in-game) / var(--client-in-game-alpha));
   }
   
   /* Toolbar buttons (make them feel like shadcn buttons) */

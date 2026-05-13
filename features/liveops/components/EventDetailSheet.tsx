@@ -47,12 +47,16 @@ import {
   EVENT_TYPES,
   EVENT_STATUSES,
   COHORT_OPTIONS,
+  CLIENT_OPTIONS,
+  OS_TYPES,
+  PLAYER_TYPES,
   normalizeCohorts,
 } from '../types/events'
 import { useEventStore } from '../hooks/useEventStore'
 import { RecurrenceConfig as RecurrenceConfigComponent } from './RecurrenceConfig'
-import { formatDateTimeForInput, inputDateToISO, addDurationToDate, nowISO } from '../lib/date-utils'
+import { addDurationToDate, nowISO } from '../lib/date-utils'
 import { Trash2, Copy } from 'lucide-react'
+import { DateTimePicker } from '@/components/ui/date-time-picker'
 
 interface EventDetailSheetProps {
   event?: LiveOpsEvent | null
@@ -88,6 +92,9 @@ export function EventDetailSheet({
       end: addDurationToDate(nowISO(), '1d'),
       cohort: ['All'],
       eventType: 'Unknown',
+      playerType: 'All',
+      osType: 'All',
+      client: 'Kinoa',
       placement: '',
       description: '',
       status: 'Draft',
@@ -112,6 +119,9 @@ export function EventDetailSheet({
         end: event.end,
         cohort: normalizeCohorts(event.cohort),
         eventType: event.eventType,
+        playerType: event.playerType,
+        osType: event.osType,
+        client: event.client,
         placement: event.placement,
         description: event.description,
         status: event.status,
@@ -126,6 +136,9 @@ export function EventDetailSheet({
         end: defaultEnd || addDurationToDate(defaultStart || nowISO(), '1d'),
         cohort: ['All'],
         eventType: 'Unknown',
+        playerType: 'All',
+        osType: 'All',
+        client: 'Kinoa',
         placement: '',
         description: '',
         status: 'Draft',
@@ -241,6 +254,41 @@ export function EventDetailSheet({
           </SheetDescription>
         </SheetHeader>
 
+        {isEditing && (
+          <div className="flex flex-wrap gap-2 border-b border-border pb-4">
+            <Button type="button" variant="outline" size="sm" onClick={handleDuplicate}>
+              <Copy className="mr-1 h-4 w-4" />
+              Duplicate
+            </Button>
+            <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+              <AlertDialogTrigger asChild>
+                <Button type="button" variant="destructive" size="sm">
+                  <Trash2 className="mr-1 h-4 w-4" />
+                  Delete
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete this event?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently remove <span className="font-medium">{event?.title}</span>. You
+                    can undo right after deleting.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    className={buttonVariants({ variant: 'destructive' })}
+                    onClick={handleConfirmDelete}
+                  >
+                    Delete
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
+        )}
+
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6 py-4">
             {/* Title */}
@@ -270,13 +318,10 @@ export function EventDetailSheet({
                   <FormItem>
                     <FormLabel>Start Date & Time *</FormLabel>
                     <FormControl>
-                      <Input
-                        type="datetime-local"
-                        value={formatDateTimeForInput(field.value)}
-                        onChange={(e) => {
-                          const next = inputDateToISO(e.target.value)
-                          if (next) field.onChange(next)
-                        }}
+                      <DateTimePicker
+                        label="Start"
+                        value={field.value}
+                        onChange={(next) => next && field.onChange(next)}
                       />
                     </FormControl>
                     <FormMessage />
@@ -291,15 +336,12 @@ export function EventDetailSheet({
                   <FormItem>
                     <FormLabel>End Date & Time *</FormLabel>
                     <FormControl>
-                      <Input
-                        type="datetime-local"
-                        aria-label="End date"
+                      <DateTimePicker
+                        label="End"
+                        textInputAriaLabel="End date"
+                        value={field.value ?? null}
                         disabled={neverEndsWatched}
-                        value={formatDateTimeForInput(field.value)}
-                        onChange={(e) => {
-                          const next = inputDateToISO(e.target.value)
-                          if (next) field.onChange(next)
-                        }}
+                        onChange={(next) => field.onChange(next)}
                       />
                     </FormControl>
                     <FormMessage />
@@ -375,6 +417,83 @@ export function EventDetailSheet({
                         {EVENT_STATUSES.map((status) => (
                           <SelectItem key={status} value={status}>
                             {status}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <FormField
+                control={form.control}
+                name="playerType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Player Type</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select player type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {PLAYER_TYPES.map((value) => (
+                          <SelectItem key={value} value={value}>
+                            {value}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="osType"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>OS Type</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select OS" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {OS_TYPES.map((value) => (
+                          <SelectItem key={value} value={value}>
+                            {value}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="client"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Client</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select client" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {CLIENT_OPTIONS.map((value) => (
+                          <SelectItem key={value} value={value}>
+                            {value}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -489,60 +608,11 @@ export function EventDetailSheet({
             />
 
             {/* Form Actions */}
-            <SheetFooter className="flex-col space-y-2 sm:space-y-0 sm:flex-row sm:justify-between">
-              <div className="flex gap-2">
-                {isEditing && (
-                  <>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={handleDuplicate}
-                    >
-                      <Copy className="h-4 w-4 mr-1" />
-                      Duplicate
-                    </Button>
-                    <AlertDialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          type="button"
-                          variant="destructive"
-                          size="sm"
-                        >
-                          <Trash2 className="h-4 w-4 mr-1" />
-                          Delete
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete this event?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            This will permanently remove <span className="font-medium">{event?.title}</span>. You can undo right after deleting.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            className={buttonVariants({ variant: 'destructive' })}
-                            onClick={handleConfirmDelete}
-                          >
-                            Delete
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  </>
-                )}
-              </div>
-              
-              <div className="flex gap-2">
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit">
-                  {isEditing ? 'Update Event' : 'Create Event'}
-                </Button>
-              </div>
+            <SheetFooter className="flex flex-row justify-end gap-2 space-y-0">
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit">{isEditing ? 'Update Event' : 'Create Event'}</Button>
             </SheetFooter>
           </form>
         </Form>

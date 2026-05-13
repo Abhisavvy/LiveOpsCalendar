@@ -1,4 +1,10 @@
-import { LiveOpsEvent, FilterState } from '../types/events'
+import {
+  LiveOpsEvent,
+  FilterState,
+  FilterStateSchema,
+  LiveOpsEventSchema,
+  normalizeEventRecordForLoad,
+} from '../types/events'
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -73,8 +79,12 @@ function safeJSONStringify(data: unknown): string | null {
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
 /**
- * Save events to localStorage with compression and error handling
+ * Save events to localStorage with error handling
  */
 export function saveEvents(events: LiveOpsEvent[]): boolean {
   if (!isStorageAvailable()) {
@@ -111,7 +121,7 @@ export function saveEvents(events: LiveOpsEvent[]): boolean {
 }
 
 /**
- * Load events from localStorage
+ * Load events from localStorage, normalizing legacy fields and dropping invalid rows.
  */
 export function loadEvents(): LiveOpsEvent[] {
   if (!isStorageAvailable()) {
@@ -124,16 +134,25 @@ export function loadEvents(): LiveOpsEvent[] {
       return []
     }
 
-    const events = safeJSONParse<LiveOpsEvent[]>(stored, [])
-    
-    // Validate events structure
-    return events.filter(event => {
-      return event && 
-             typeof event.id === 'string' &&
-             typeof event.title === 'string' &&
-             typeof event.start === 'string' &&
-             typeof event.end === 'string'
-    })
+    const events = safeJSONParse<unknown[]>(stored, [])
+
+    // Validate events structure, then normalize enums and defaults for migrated fields
+    return events
+      .filter(isRecord)
+      .filter((event) => {
+        const endOk = event.end === null || typeof event.end === 'string'
+        return (
+          typeof event.id === 'string' &&
+          typeof event.title === 'string' &&
+          typeof event.start === 'string' &&
+          endOk
+        )
+      })
+      .map((event) => normalizeEventRecordForLoad(event as Record<string, unknown>))
+      .flatMap((event) => {
+        const parsed = LiveOpsEventSchema.safeParse(event)
+        return parsed.success ? [parsed.data] : []
+      })
   } catch (error) {
     console.error('Failed to load events from storage:', error)
     return []
@@ -241,39 +260,40 @@ export function exportAllData(): string | null {
 }
 
 /**
- * Import data from backup
+ * Import data from backup, validating event and filter payloads.
  */
 export function importAllData(jsonData: string): { success: boolean; error?: string } {
   try {
-    const data = JSON.parse(jsonData)
+    const data = safeJSONParse<Record<string, unknown>>(jsonData, {})
     
     if (!data.events || !Array.isArray(data.events)) {
       return { success: false, error: 'Invalid data format: missing events array' }
     }
 
-    // Validate events structure
-    const validEvents = data.events.filter((event: unknown) => {
-      return event && 
-             typeof event === 'object' &&
-             'id' in event &&
-             'title' in event &&
-             'start' in event &&
-             'end' in event
-    })
+    const parsedEvents = data.events
+      .filter(isRecord)
+      .map((event) => normalizeEventRecordForLoad(event))
+      .flatMap((event) => {
+        const parsed = LiveOpsEventSchema.safeParse(event)
+        return parsed.success ? [parsed.data] : []
+      })
 
-    if (validEvents.length === 0) {
+    if (parsedEvents.length === 0) {
       return { success: false, error: 'No valid events found in import data' }
     }
 
     // Save imported data
-    const saveSuccess = saveEvents(validEvents)
+    const saveSuccess = saveEvents(parsedEvents)
     if (!saveSuccess) {
       return { success: false, error: 'Failed to save imported events' }
     }
 
     // Save filters if present
     if (data.filters) {
-      saveFilters(data.filters)
+      const filters = FilterStateSchema.safeParse(data.filters)
+      if (filters.success) {
+        saveFilters(filters.data)
+      }
     }
 
     return { success: true }

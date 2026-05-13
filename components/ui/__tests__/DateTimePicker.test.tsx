@@ -1,0 +1,88 @@
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import React from 'react'
+import { DateTimePicker } from '../date-time-picker'
+
+describe('DateTimePicker', () => {
+  it('opens the calendar at the month of the last clicked day even when controlled value stays on an older month', async () => {
+    const user = userEvent.setup()
+    const noop = vi.fn()
+    const january = new Date(Date.UTC(2026, 0, 5, 10, 0, 0)).toISOString()
+
+    const { rerender } = render(
+      <DateTimePicker label="Scheduled" value={january} onChange={noop} />,
+    )
+
+    await user.click(screen.getByRole('button', { name: /^scheduled$/i }))
+    await screen.findByRole('grid', { name: /^calendar$/i })
+    let panel = screen.getByRole('grid', { name: /^calendar$/i }).closest('[data-datepicker-panel="true"]')
+    expect(panel).toBeTruthy()
+    panel = panel as HTMLElement
+
+    expect(within(panel).getByText(/January 2026/i)).toBeInTheDocument()
+
+    await user.click(within(panel).getByRole('button', { name: /^next month$/i }))
+    await user.click(within(panel).getByRole('button', { name: /^next month$/i }))
+
+    expect(within(panel).getByText(/March 2026/i)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('gridcell', { name: /March 12, 2026/i }))
+
+    expect(noop).toHaveBeenCalled()
+    rerender(<DateTimePicker label="Scheduled" value={january} onChange={noop} />)
+
+    await user.click(screen.getByRole('button', { name: /^scheduled$/i }))
+    await screen.findByRole('grid', { name: /^calendar$/i })
+
+    panel = screen.getByRole('grid', { name: /^calendar$/i }).closest('[data-datepicker-panel="true"]') as HTMLElement
+
+    expect(within(panel).getByText(/March 2026/i)).toBeInTheDocument()
+    expect(within(panel).queryByText(/May 2026/i)).not.toBeInTheDocument()
+    expect(within(panel).queryByText(/January 2026/i)).not.toBeInTheDocument()
+  })
+
+  it('reopens on last picked calendar month—not system today—when value stays null after pick', async () => {
+    const user = userEvent.setup({
+      advanceTimers: vi.advanceTimersByTime.bind(vi),
+    })
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.setSystemTime(new Date(2026, 4, 20, 12, 0, 0))
+
+    try {
+      const noop = vi.fn()
+      const { rerender } = render(
+        <DateTimePicker label="Pick" value={null} onChange={noop} />,
+      )
+
+      await user.click(screen.getByRole('button', { name: /^pick$/i }))
+      await screen.findByRole('grid', { name: /^calendar$/i })
+      let panel = screen
+        .getByRole('grid', { name: /^calendar$/i })
+        .closest('[data-datepicker-panel="true"]') as HTMLElement
+
+      expect(within(panel).getByText(/May 2026/i)).toBeInTheDocument()
+
+      await user.click(within(panel).getByRole('button', { name: /^previous month$/i }))
+      await user.click(within(panel).getByRole('button', { name: /^previous month$/i }))
+      await user.click(within(panel).getByRole('button', { name: /^previous month$/i }))
+      expect(within(panel).getByText(/February 2026/i)).toBeInTheDocument()
+
+      await user.click(screen.getByRole('gridcell', { name: /February 10, 2026/i }))
+      expect(noop).toHaveBeenCalled()
+
+      rerender(<DateTimePicker label="Pick" value={null} onChange={noop} />)
+
+      await user.click(screen.getByRole('button', { name: /^pick$/i }))
+      await screen.findByRole('grid', { name: /^calendar$/i })
+      panel = screen
+        .getByRole('grid', { name: /^calendar$/i })
+        .closest('[data-datepicker-panel="true"]') as HTMLElement
+
+      expect(within(panel).getByText(/February 2026/i)).toBeInTheDocument()
+      expect(within(panel).queryByText(/May 2026/i)).not.toBeInTheDocument()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+})

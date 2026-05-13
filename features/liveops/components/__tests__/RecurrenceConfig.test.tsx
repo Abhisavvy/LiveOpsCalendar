@@ -21,6 +21,7 @@ describe('RecurrenceConfig', () => {
 
     expect(screen.getByRole('button', { name: /until/i })).toBeInTheDocument()
     expect(screen.getByLabelText(/until time/i)).toBeInTheDocument()
+    expect(document.querySelector('input[type="datetime-local"]')).toBeNull()
   })
 })
 

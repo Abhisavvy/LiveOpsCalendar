@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useMemo, useState } from 'react'
-import { Search, Filter, Calendar, Users, Target, Activity, ChevronDown, ChevronRight } from 'lucide-react'
+import { Search, Filter, Calendar, Users, Target, Activity, ChevronDown, ChevronRight, Smartphone, UserCircle } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -11,7 +11,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { useEventFilters } from '../hooks/useEventFilters'
 import { useEventStore } from '../hooks/useEventStore'
 import { FilterChips } from './FilterChips'
-import { EVENT_TYPES, EVENT_STATUSES } from '../types/events'
+import { EVENT_TYPES, EVENT_STATUSES, PLAYER_TYPES, OS_TYPES } from '../types/events'
 
 interface SidebarFiltersProps {
   className?: string
@@ -26,6 +26,8 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
     toggleEventType,
     toggleCohort,
     toggleStatus,
+    togglePlayerType,
+    toggleOsType,
     setDateRange,
     applyPreset,
     selectAll,
@@ -39,6 +41,8 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
     search: true,
     eventTypes: true,
     cohorts: true,
+    playerTypes: true,
+    osTypes: true,
     statuses: true,
     dateRange: false,
     presets: false,
@@ -53,13 +57,20 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
     const byStatus: Record<string, number> = {}
     const byCohort: Record<string, number> = {}
 
+    const byPlayerType: Record<string, number> = {}
+    const byOsType: Record<string, number> = {}
+
     for (const e of events) {
       byEventType[e.eventType] = (byEventType[e.eventType] || 0) + 1
       byStatus[e.status] = (byStatus[e.status] || 0) + 1
-      byCohort[e.cohort] = (byCohort[e.cohort] || 0) + 1
+      byPlayerType[e.playerType] = (byPlayerType[e.playerType] || 0) + 1
+      byOsType[e.osType] = (byOsType[e.osType] || 0) + 1
+      for (const c of e.cohort) {
+        byCohort[c] = (byCohort[c] || 0) + 1
+      }
     }
 
-    return { byEventType, byStatus, byCohort }
+    return { byEventType, byStatus, byCohort, byPlayerType, byOsType }
   }, [events])
 
   return (
@@ -245,6 +256,140 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
                 No cohorts available
               </p>
             )}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+
+      {/* Player types */}
+      <Collapsible open={openSections.playerTypes} onOpenChange={(open) => setSectionOpen('playerTypes', open)}>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" className="w-full justify-between p-2 h-auto">
+            <div className="flex items-center gap-2">
+              <UserCircle className="h-4 w-4" />
+              <span className="text-sm font-medium">Player Types</span>
+              {filters.playerTypes.length > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  {filters.playerTypes.length}
+                </Badge>
+              )}
+            </div>
+            {openSections.playerTypes ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-2 mt-2">
+          <div className="flex gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => selectAll('playerTypes')}
+              className="h-6 px-2 text-xs"
+            >
+              All
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => selectNone('playerTypes')}
+              className="h-6 px-2 text-xs"
+            >
+              None
+            </Button>
+          </div>
+
+          <div className="space-y-2">
+            {PLAYER_TYPES.map(playerType => {
+              const isSelected = filters.playerTypes.includes(playerType)
+
+              return (
+                <div key={playerType} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`playerType-${playerType}`}
+                    checked={isSelected}
+                    onCheckedChange={() => togglePlayerType(playerType)}
+                  />
+                  <Label
+                    htmlFor={`playerType-${playerType}`}
+                    className="text-sm cursor-pointer flex-1"
+                  >
+                    {playerType}
+                  </Label>
+                  <span className="text-xs text-muted-foreground">
+                    ({counts.byPlayerType[playerType] || 0})
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
+
+      {/* OS types */}
+      <Collapsible open={openSections.osTypes} onOpenChange={(open) => setSectionOpen('osTypes', open)}>
+        <CollapsibleTrigger asChild>
+          <Button variant="ghost" className="w-full justify-between p-2 h-auto">
+            <div className="flex items-center gap-2">
+              <Smartphone className="h-4 w-4" />
+              <span className="text-sm font-medium">OS</span>
+              {filters.osTypes.length > 0 && (
+                <Badge variant="secondary" className="text-xs">
+                  {filters.osTypes.length}
+                </Badge>
+              )}
+            </div>
+            {openSections.osTypes ? (
+              <ChevronDown className="h-4 w-4" />
+            ) : (
+              <ChevronRight className="h-4 w-4" />
+            )}
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-2 mt-2">
+          <div className="flex gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => selectAll('osTypes')}
+              className="h-6 px-2 text-xs"
+            >
+              All
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => selectNone('osTypes')}
+              className="h-6 px-2 text-xs"
+            >
+              None
+            </Button>
+          </div>
+
+          <div className="space-y-2">
+            {OS_TYPES.map(osType => {
+              const isSelected = filters.osTypes.includes(osType)
+
+              return (
+                <div key={osType} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`osType-${osType}`}
+                    checked={isSelected}
+                    onCheckedChange={() => toggleOsType(osType)}
+                  />
+                  <Label
+                    htmlFor={`osType-${osType}`}
+                    className="text-sm cursor-pointer flex-1"
+                  >
+                    {osType}
+                  </Label>
+                  <span className="text-xs text-muted-foreground">
+                    ({counts.byOsType[osType] || 0})
+                  </span>
+                </div>
+              )
+            })}
           </div>
         </CollapsibleContent>
       </Collapsible>

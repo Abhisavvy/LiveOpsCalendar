@@ -2,12 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useBatchImport } from '../useBatchImport'
 
-// Mock the event store
-const mockAddMultipleEvents = vi.fn()
-vi.mock('../useEventStore', () => ({
-  useEventStore: () => mockAddMultipleEvents,
-}))
-
 // Mock toast
 const mockToast = vi.fn()
 vi.mock('@/hooks/use-toast', () => ({
@@ -94,6 +88,37 @@ describe('useBatchImport', () => {
     })
   })
 
+  it('rejects files that exceed the size limit', async () => {
+    const { result } = renderHook(() => useBatchImport())
+    const largeContent = new ArrayBuffer(11 * 1024 * 1024)
+    const file = new File([largeContent], 'large.csv', { type: 'text/csv' })
+
+    await act(async () => {
+      await expect(result.current.importFile(file)).rejects.toThrow('File size too large')
+    })
+
+    expect(mockToast).toHaveBeenCalledWith({
+      title: "Import Error",
+      description: 'File size too large. Maximum allowed: 10MB',
+      variant: "destructive",
+    })
+  })
+
+  it('rejects non-CSV file types', async () => {
+    const { result } = renderHook(() => useBatchImport())
+    const file = new File(['content'], 'notes.txt', { type: 'text/plain' })
+
+    await act(async () => {
+      await expect(result.current.importFile(file)).rejects.toThrow('Invalid file type')
+    })
+
+    expect(mockToast).toHaveBeenCalledWith({
+      title: "Import Error",
+      description: 'Invalid file type. Please upload a CSV file.',
+      variant: "destructive",
+    })
+  })
+
   it('should cancel import and reset state', () => {
     const { result } = renderHook(() => useBatchImport())
 
@@ -109,11 +134,12 @@ describe('useBatchImport', () => {
     })
   })
 
-  it('resolves COMPLETE without calling addMultipleEvents', async () => {
+  it('resolves COMPLETE and updates state', async () => {
     const { result } = renderHook(() => useBatchImport())
     const file = new File(['test content'], 'test.csv', { type: 'text/csv' })
 
     let importPromise: Promise<any> | undefined
+    let importResult: any
 
     await act(async () => {
       importPromise = result.current.importFile(file)
@@ -137,9 +163,10 @@ describe('useBatchImport', () => {
           },
         },
       })
-      await importPromise
+      importResult = await importPromise
     })
 
-    expect(mockAddMultipleEvents).not.toHaveBeenCalled()
+    expect(importResult?.success).toBe(true)
+    expect(result.current.state.status).toBe('completed')
   })
 })

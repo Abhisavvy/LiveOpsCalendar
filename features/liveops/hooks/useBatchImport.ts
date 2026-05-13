@@ -87,6 +87,8 @@ const initialState: BatchImportState = {
   },
 }
 
+const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10MB
+
 export function useBatchImport(): UseBatchImportReturn {
   const [state, setState] = useState<BatchImportState>(initialState)
   const workerRef = useRef<Worker | null>(null)
@@ -180,6 +182,28 @@ export function useBatchImport(): UseBatchImportReturn {
 
     if (state.status !== 'idle') {
       throw new Error('Import already in progress')
+    }
+
+    const fileTypeInvalid =
+      !file.name.toLowerCase().endsWith('.csv') && file.type !== 'text/csv'
+    if (fileTypeInvalid) {
+      const error = 'Invalid file type. Please upload a CSV file.'
+      toast({
+        title: "Import Error",
+        description: error,
+        variant: "destructive",
+      })
+      throw new Error(error)
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      const error = `File size too large. Maximum allowed: ${MAX_FILE_SIZE / 1024 / 1024}MB`
+      toast({
+        title: "Import Error",
+        description: error,
+        variant: "destructive",
+      })
+      throw new Error(error)
     }
 
     // Create abort controller for cancellation support
@@ -312,6 +336,7 @@ export function useBatchImport(): UseBatchImportReturn {
           fileContent,
           fileName: file.name,
           fileSize: file.size,
+          fileType: file.type,
         }
 
         worker.postMessage({

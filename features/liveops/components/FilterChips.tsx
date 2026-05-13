@@ -19,6 +19,8 @@ export function FilterChips({ className }: FilterChipsProps) {
     toggleEventType,
     toggleCohort,
     toggleStatus,
+    togglePlayerType,
+    toggleOsType,
     clearDateRange,
     clearFilters,
   } = useEventFilters()
@@ -71,13 +73,35 @@ export function FilterChips({ className }: FilterChipsProps) {
         ))}
 
         {/* Cohorts */}
-        {filters.cohorts.map(cohort => (
+        {filters.cohorts.filter(c => c !== 'All').map(cohort => (
           <FilterChip
             key={`cohort-${cohort}`}
             label="Cohort"
             value={cohort}
             onRemove={() => toggleCohort(cohort)}
             color="green"
+          />
+        ))}
+
+        {/* Player types */}
+        {filters.playerTypes.filter(pt => pt !== 'All').map(playerType => (
+          <FilterChip
+            key={`playerType-${playerType}`}
+            label="Players"
+            value={playerType}
+            onRemove={() => togglePlayerType(playerType)}
+            color="teal"
+          />
+        ))}
+
+        {/* OS types */}
+        {filters.osTypes.filter(ot => ot !== 'All').map(osType => (
+          <FilterChip
+            key={`osType-${osType}`}
+            label="OS"
+            value={osType}
+            onRemove={() => toggleOsType(osType)}
+            color="indigo"
           />
         ))}
 
@@ -110,7 +134,7 @@ interface FilterChipProps {
   label: string
   value: string
   onRemove: () => void
-  color?: 'blue' | 'green' | 'purple' | 'orange' | 'gray'
+  color?: 'blue' | 'green' | 'purple' | 'orange' | 'gray' | 'teal' | 'indigo'
 }
 
 function FilterChip({ label, value, onRemove, color = 'gray' }: FilterChipProps) {
@@ -119,6 +143,8 @@ function FilterChip({ label, value, onRemove, color = 'gray' }: FilterChipProps)
     green: 'bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900 dark:text-green-200',
     purple: 'bg-purple-100 text-purple-800 hover:bg-purple-200 dark:bg-purple-900 dark:text-purple-200',
     orange: 'bg-orange-100 text-orange-800 hover:bg-orange-200 dark:bg-orange-900 dark:text-orange-200',
+    teal: 'bg-teal-100 text-teal-800 hover:bg-teal-200 dark:bg-teal-900 dark:text-teal-200',
+    indigo: 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200 dark:bg-indigo-900 dark:text-indigo-200',
     gray: 'bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200',
   }
 

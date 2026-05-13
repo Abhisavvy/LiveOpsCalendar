@@ -6,10 +6,69 @@ export type CohortType = string
 export type PlacementType = string
 
 // Event Types
-export const EVENT_TYPES = ['IAP', 'Progression', 'Retention', 'System', 'Unknown'] as const
+export const EVENT_TYPES = ['IAP', 'Retention', 'Rolling Retention', 'Engagement', 'Unknown'] as const
 export type EventType = typeof EVENT_TYPES[number]
 
-// Event Statuses
+export const PLAYER_TYPES = ['All', 'Payer', 'Non payer'] as const
+export type PlayerType = typeof PLAYER_TYPES[number]
+
+export const OS_TYPES = ['All', 'Android', 'iOS'] as const
+export type OsType = typeof OS_TYPES[number]
+
+export const CLIENT_OPTIONS = ['Kinoa', 'In-game'] as const
+export type ClientOption = typeof CLIENT_OPTIONS[number]
+
+const EVENT_TYPE_LOOKUP = EVENT_TYPES.reduce<Record<string, EventType>>((acc, value) => {
+  acc[value.toLowerCase()] = value
+  return acc
+}, {})
+
+const PLAYER_TYPE_LOOKUP: Record<string, PlayerType> = {
+  all: 'All',
+  payer: 'Payer',
+  'non payer': 'Non payer',
+  nonpayer: 'Non payer',
+  'non-payer': 'Non payer',
+}
+
+const OS_TYPE_LOOKUP: Record<string, OsType> = {
+  all: 'All',
+  android: 'Android',
+  ios: 'iOS',
+}
+
+const CLIENT_LOOKUP: Record<string, ClientOption> = {
+  kinoa: 'Kinoa',
+  'in-game': 'In-game',
+  ingame: 'In-game',
+  'in game': 'In-game',
+}
+
+export function normalizeEventType(input: unknown): EventType {
+  if (typeof input !== 'string' || !input.trim()) return 'Unknown'
+  const lower = input.trim().toLowerCase()
+  if (lower === 'system' || lower === 'progression') return 'Unknown'
+  return EVENT_TYPE_LOOKUP[lower] ?? 'Unknown'
+}
+
+export function normalizePlayerType(input: unknown): PlayerType {
+  if (typeof input !== 'string' || !input.trim()) return 'All'
+  const key = input.trim().toLowerCase()
+  return PLAYER_TYPE_LOOKUP[key] ?? 'All'
+}
+
+export function normalizeOsType(input: unknown): OsType {
+  if (typeof input !== 'string' || !input.trim()) return 'All'
+  const key = input.trim().toLowerCase()
+  return OS_TYPE_LOOKUP[key] ?? 'All'
+}
+
+export function normalizeClient(input: unknown): ClientOption {
+  if (typeof input !== 'string' || !input.trim()) return 'Kinoa'
+  const key = input.trim().toLowerCase()
+  return CLIENT_LOOKUP[key] ?? 'Kinoa'
+}
+
 export const EVENT_STATUSES = ['Draft', 'Scheduled', 'Active', 'Ended'] as const
 export type EventStatus = typeof EVENT_STATUSES[number]
 
@@ -34,19 +93,42 @@ const COHORT_LOOKUP = COHORT_OPTIONS.reduce<Record<string, CohortOption>>((acc, 
   return acc
 }, {})
 
-export function normalizeCohorts(input: string[] | string | null | undefined): CohortOption[] {
-  if (!input) return ['All']
-  const raw = Array.isArray(input) ? input : input.split(',')
+function mapRawStringsToCohorts(raw: string[]): CohortOption[] {
   const normalized = raw
     .map((value) => COHORT_LOOKUP[value.trim().toLowerCase()])
     .filter(Boolean) as CohortOption[]
-
   if (normalized.includes('All')) return ['All']
   return normalized.length ? normalized : ['All']
 }
 
+/** Safe for malformed persisted data (non-string cohorts, wrong types). */
+export function normalizeCohorts(input: unknown): CohortOption[] {
+  if (input == null) return ['All']
+  if (typeof input === 'string') {
+    if (!input.trim()) return ['All']
+    return mapRawStringsToCohorts(input.split(','))
+  }
+  if (Array.isArray(input)) {
+    const strings = input.filter((v): v is string => typeof v === 'string')
+    return mapRawStringsToCohorts(strings)
+  }
+  return ['All']
+}
+
 export function formatCohorts(cohorts: CohortOption[] | string[]): string {
-  return normalizeCohorts(cohorts as CohortOption[]).join(', ')
+  return normalizeCohorts(cohorts).join(', ')
+}
+
+/** Apply cohort, event type, and audience defaults when reading from storage. */
+export function normalizeEventRecordForLoad(event: Record<string, unknown>): Record<string, unknown> {
+  return {
+    ...event,
+    cohort: normalizeCohorts(event.cohort),
+    eventType: normalizeEventType(event.eventType),
+    playerType: normalizePlayerType(event.playerType),
+    osType: normalizeOsType(event.osType),
+    client: normalizeClient(event.client),
+  }
 }
 
 // Duration options for dropdown
@@ -76,6 +158,11 @@ export const RecurrenceConfigSchema = z.object({
 
 export type RecurrenceConfig = z.infer<typeof RecurrenceConfigSchema>
 
+const preprocessedEventType = z.preprocess(normalizeEventType, z.enum(EVENT_TYPES))
+const preprocessedPlayerType = z.preprocess(normalizePlayerType, z.enum(PLAYER_TYPES))
+const preprocessedOsType = z.preprocess(normalizeOsType, z.enum(OS_TYPES))
+const preprocessedClient = z.preprocess(normalizeClient, z.enum(CLIENT_OPTIONS))
+
 function refineCohortAllExclusive(data: { cohort: CohortOption[] }, ctx: z.RefinementCtx) {
   if (data.cohort.includes('All') && data.cohort.length > 1) {
     ctx.addIssue({
@@ -93,7 +180,10 @@ const LiveOpsEventObjectSchema = z.object({
   start: z.string().datetime('Invalid start date format'),
   end: z.string().datetime('Invalid end date format').nullable(),
   cohort: z.array(z.enum(COHORT_OPTIONS)).min(1, 'Cohort is required'),
-  eventType: z.enum(EVENT_TYPES),
+  eventType: preprocessedEventType,
+  playerType: preprocessedPlayerType,
+  osType: preprocessedOsType,
+  client: preprocessedClient,
   placement: z.string().min(1, 'Placement is required'),
   description: z.string().max(1000, 'Description too long').default(''),
   status: z.enum(EVENT_STATUSES).default('Draft'),
@@ -148,6 +238,35 @@ export const CsvRowSchema = z.object({
   'Fine Print': z.string().optional(),
   'Description': z.string().optional(),
   'Details': z.string().optional(),
+
+  // Audience (export / import alignment)
+  'Player Type': z.string().optional(),
+  OS: z.string().optional(),
+  Client: z.string().optional(),
+
+  // Recurrence pattern columns (explicit + legacy headings)
+  frequency: z.string().optional(),
+  interval: z.string().optional(),
+  daysOfWeek: z.string().optional(),
+  dayOfMonth: z.string().optional(),
+  monthlyPattern: z.string().optional(),
+  until: z.string().optional(),
+  count: z.string().optional(),
+
+  Frequency: z.string().optional(),
+  Interval: z.string().optional(),
+  'Days Of Week': z.string().optional(),
+  'Days of Week': z.string().optional(),
+  'Day Of Month': z.string().optional(),
+  'Day of month': z.string().optional(),
+  'Monthly Pattern': z.string().optional(),
+  'Monthly pattern': z.string().optional(),
+  Until: z.string().optional(),
+  Count: z.string().optional(),
+
+  'Recurrence Frequency': z.string().optional(),
+  'Recurrence Interval': z.string().optional(),
+  'Recurrence Until': z.string().optional(),
 })
 
 export type CsvRow = z.infer<typeof CsvRowSchema>
@@ -201,6 +320,8 @@ export const FilterStateSchema = z.object({
   eventTypes: z.array(z.enum(EVENT_TYPES)).default([]),
   cohorts: z.array(z.string()).default([]),
   statuses: z.array(z.enum(EVENT_STATUSES)).default([]),
+  playerTypes: z.array(z.enum(PLAYER_TYPES)).default([]),
+  osTypes: z.array(z.enum(OS_TYPES)).default([]),
   dateRange: z.object({
     start: z.string().datetime().optional(),
     end: z.string().datetime().optional(),

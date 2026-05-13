@@ -3,7 +3,16 @@
 import { create } from 'zustand'
 import { devtools, persist } from 'zustand/middleware'
 import { immer } from 'zustand/middleware/immer'
-import { LiveOpsEvent, EventInput, FilterState, createEventId, CsvProcessingResult } from '../types/events'
+import {
+  LiveOpsEvent,
+  EventInput,
+  FilterState,
+  FilterStateSchema,
+  createEventId,
+  CsvProcessingResult,
+  formatCohorts,
+  normalizeCohorts,
+} from '../types/events'
 import { saveEvents, loadEvents, saveFilters, loadFilters } from '../lib/storage'
 import { nowISO } from '../lib/date-utils'
 
@@ -67,6 +76,8 @@ export const useEventStore = create<EventStore>()(
           eventTypes: [],
           cohorts: [],
           statuses: [],
+          playerTypes: [],
+          osTypes: [],
         },
         selectedEvent: null,
         isLoading: false,
@@ -82,6 +93,9 @@ export const useEventStore = create<EventStore>()(
             end: input.end,
             cohort: input.cohort,
             eventType: input.eventType,
+            playerType: input.playerType,
+            osType: input.osType,
+            client: input.client,
             placement: input.placement,
             description: input.description,
             status: input.status || 'Draft',
@@ -192,6 +206,9 @@ export const useEventStore = create<EventStore>()(
             end: input.end,
             cohort: input.cohort,
             eventType: input.eventType,
+            playerType: input.playerType,
+            osType: input.osType,
+            client: input.client,
             placement: input.placement,
             description: input.description,
             status: input.status || 'Draft',
@@ -218,6 +235,9 @@ export const useEventStore = create<EventStore>()(
             end: input.end,
             cohort: input.cohort,
             eventType: input.eventType,
+            playerType: input.playerType,
+            osType: input.osType,
+            client: input.client,
             placement: input.placement,
             description: input.description,
             status: input.status || 'Draft',
@@ -294,6 +314,8 @@ export const useEventStore = create<EventStore>()(
               eventTypes: [],
               cohorts: [],
               statuses: [],
+              playerTypes: [],
+              osTypes: [],
             }
           })
           get().applyFilters()
@@ -301,8 +323,13 @@ export const useEventStore = create<EventStore>()(
         },
 
         applyFilters: () => {
-          const { events, filters } = get()
-          
+          const { events } = get()
+          const rawFilters = get().filters
+          const parsedFilters = FilterStateSchema.safeParse(rawFilters)
+          const filters = parsedFilters.success
+            ? parsedFilters.data
+            : FilterStateSchema.parse({})
+
           let filtered = events
 
           // Search query filter
@@ -312,7 +339,7 @@ export const useEventStore = create<EventStore>()(
               event.title.toLowerCase().includes(query) ||
               event.description.toLowerCase().includes(query) ||
               event.placement.toLowerCase().includes(query) ||
-              event.cohort.toLowerCase().includes(query)
+              formatCohorts(event.cohort).toLowerCase().includes(query)
             )
           }
 
@@ -323,10 +350,39 @@ export const useEventStore = create<EventStore>()(
             )
           }
 
-          // Cohort filter
-          if (filters.cohorts.length > 0) {
-            filtered = filtered.filter(event => 
-              filters.cohorts.includes(event.cohort)
+          const cohortSelections =
+            filters.cohorts.includes('All') ? [] : filters.cohorts
+          const playerTypeSelections =
+            filters.playerTypes.includes('All') ? [] : filters.playerTypes
+          const osTypeSelections =
+            filters.osTypes.includes('All') ? [] : filters.osTypes
+
+          // Cohort filter (AND across selected cohorts; inactive when UI "All"; event "All" matches any narrow selection)
+          if (cohortSelections.length > 0) {
+            filtered = filtered.filter(event => {
+              const eventCohorts = normalizeCohorts(event.cohort)
+              if (eventCohorts.includes('All')) return true
+              return cohortSelections.every(c =>
+                eventCohorts.includes(c as (typeof eventCohorts)[number]),
+              )
+            })
+          }
+
+          // Player type filter
+          if (playerTypeSelections.length > 0) {
+            filtered = filtered.filter(
+              event =>
+                event.playerType === 'All' ||
+                playerTypeSelections.includes(event.playerType),
+            )
+          }
+
+          // OS type filter
+          if (osTypeSelections.length > 0) {
+            filtered = filtered.filter(
+              event =>
+                event.osType === 'All' ||
+                osTypeSelections.includes(event.osType),
             )
           }
 
@@ -359,7 +415,15 @@ export const useEventStore = create<EventStore>()(
             })
           }
 
+          const needsFilterShapeFix =
+            !parsedFilters.success ||
+            rawFilters.playerTypes === undefined ||
+            rawFilters.osTypes === undefined
+
           set((state) => {
+            if (needsFilterShapeFix) {
+              state.filters = filters
+            }
             state.filteredEvents = filtered
           })
         },
@@ -384,7 +448,8 @@ export const useEventStore = create<EventStore>()(
 
             set((state) => {
               state.events = events
-              state.filters = filters || state.filters
+              const parsed = filters ? FilterStateSchema.safeParse(filters) : null
+              state.filters = parsed?.success ? parsed.data : FilterStateSchema.parse({})
               state.isLoading = false
             })
 

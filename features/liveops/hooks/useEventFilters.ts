@@ -2,8 +2,31 @@
 
 import { useMemo, useCallback } from 'react'
 import { useEventStore } from './useEventStore'
-import { EventType, EventStatus } from '../types/events'
+import type { EventType, EventStatus, OsType, PlayerType } from '../types/events'
 import { useDebounce } from './useDebounce'
+
+function audienceFilterActive(values: readonly string[]) {
+  return values.length > 0 && !values.includes('All')
+}
+
+/** Multi-select with `All` sentinel: selecting `All` clears specifics; specifics clear `All`. */
+function toggleAudienceValue(prev: readonly string[], value: string): string[] {
+  if (value === 'All') {
+    return prev.includes('All') ? [] : ['All']
+  }
+  const withoutAll = prev.filter(v => v !== 'All')
+  if (withoutAll.includes(value)) {
+    return withoutAll.filter(v => v !== value)
+  }
+  return [...withoutAll, value]
+}
+
+function normalizeAudienceSetter(values: readonly string[]): string[] {
+  if (values.includes('All') && values.length > 1) {
+    return values.filter(v => v !== 'All')
+  }
+  return [...values]
+}
 
 export function useEventFilters() {
   const filters = useEventStore(state => state.filters)
@@ -17,16 +40,20 @@ export function useEventFilters() {
   
   // Get unique values for filter options
   const filterOptions = useMemo(() => {
-    const cohorts = Array.from(new Set(events.map(e => e.cohort))).sort()
+    const cohorts = Array.from(new Set(events.map(e => e.cohort).flat())).sort()
     const eventTypes = Array.from(new Set(events.map(e => e.eventType))).sort()
     const statuses = Array.from(new Set(events.map(e => e.status))).sort()
     const placements = Array.from(new Set(events.map(e => e.placement))).sort()
-    
+    const playerTypes = Array.from(new Set(events.map(e => e.playerType))).sort()
+    const osTypes = Array.from(new Set(events.map(e => e.osType))).sort()
+
     return {
       cohorts,
       eventTypes,
       statuses,
       placements,
+      playerTypes,
+      osTypes,
     }
   }, [events])
   
@@ -37,8 +64,10 @@ export function useEventFilters() {
     const hasActiveFilters = Boolean(
       filters.searchQuery.trim() ||
       filters.eventTypes.length > 0 ||
-      filters.cohorts.length > 0 ||
+      audienceFilterActive(filters.cohorts) ||
       filters.statuses.length > 0 ||
+      audienceFilterActive(filters.playerTypes) ||
+      audienceFilterActive(filters.osTypes) ||
       filters.dateRange
     )
     
@@ -79,23 +108,66 @@ export function useEventFilters() {
   }, [setFilters])
   
   // Cohort filters
-  const toggleCohort = useCallback((cohort: string) => {
-    const currentCohorts = filters.cohorts
-    const newCohorts = currentCohorts.includes(cohort)
-      ? currentCohorts.filter(c => c !== cohort)
-      : [...currentCohorts, cohort]
-    
-    setFilters({ cohorts: newCohorts })
-  }, [filters.cohorts, setFilters])
+  const toggleCohort = useCallback(
+    (cohort: string) => {
+      setFilters({ cohorts: toggleAudienceValue(filters.cohorts, cohort) })
+    },
+    [filters.cohorts, setFilters],
+  )
   
-  const setCohorts = useCallback((cohorts: string[]) => {
-    setFilters({ cohorts })
-  }, [setFilters])
+  const setCohorts = useCallback(
+    (cohorts: string[]) => {
+      setFilters({ cohorts: normalizeAudienceSetter(cohorts) })
+    },
+    [setFilters],
+  )
   
   const clearCohorts = useCallback(() => {
     setFilters({ cohorts: [] })
   }, [setFilters])
-  
+
+  // Player type filters
+  const togglePlayerType = useCallback(
+    (playerType: PlayerType) => {
+      setFilters({
+        playerTypes: toggleAudienceValue(filters.playerTypes, playerType),
+      })
+    },
+    [filters.playerTypes, setFilters],
+  )
+
+  const setPlayerTypes = useCallback(
+    (playerTypes: PlayerType[]) => {
+      setFilters({
+        playerTypes: normalizeAudienceSetter(playerTypes) as PlayerType[],
+      })
+    },
+    [setFilters],
+  )
+
+  const clearPlayerTypes = useCallback(() => {
+    setFilters({ playerTypes: [] })
+  }, [setFilters])
+
+  // OS type filters
+  const toggleOsType = useCallback(
+    (osType: OsType) => {
+      setFilters({ osTypes: toggleAudienceValue(filters.osTypes, osType) })
+    },
+    [filters.osTypes, setFilters],
+  )
+
+  const setOsTypes = useCallback(
+    (osTypes: OsType[]) => {
+      setFilters({ osTypes: normalizeAudienceSetter(osTypes) as OsType[] })
+    },
+    [setFilters],
+  )
+
+  const clearOsTypes = useCallback(() => {
+    setFilters({ osTypes: [] })
+  }, [setFilters])
+
   // Status filters
   const toggleStatus = useCallback((status: EventStatus) => {
     const currentStatuses = filters.statuses
@@ -131,19 +203,23 @@ export function useEventFilters() {
     
     switch (preset) {
       case 'active':
-        setFilters({ 
+        setFilters({
           statuses: ['Active'],
           eventTypes: [],
           cohorts: [],
+          playerTypes: [],
+          osTypes: [],
           dateRange: undefined
         })
         break
         
       case 'scheduled':
-        setFilters({ 
+        setFilters({
           statuses: ['Scheduled'],
           eventTypes: [],
           cohorts: [],
+          playerTypes: [],
+          osTypes: [],
           dateRange: undefined
         })
         break
@@ -180,21 +256,31 @@ export function useEventFilters() {
   }, [setFilters])
   
   // Quick actions
-  const selectAll = useCallback((filterType: 'eventTypes' | 'cohorts' | 'statuses') => {
+  const selectAll = useCallback(
+    (filterType: 'eventTypes' | 'cohorts' | 'statuses' | 'playerTypes' | 'osTypes') => {
     switch (filterType) {
       case 'eventTypes':
         setEventTypes(filterOptions.eventTypes as EventType[])
         break
       case 'cohorts':
-        setCohorts(filterOptions.cohorts)
+        setCohorts(['All'])
         break
       case 'statuses':
         setStatuses(filterOptions.statuses as EventStatus[])
         break
+      case 'playerTypes':
+        setPlayerTypes(['All'])
+        break
+      case 'osTypes':
+        setOsTypes(['All'])
+        break
     }
-  }, [filterOptions, setEventTypes, setCohorts, setStatuses])
-  
-  const selectNone = useCallback((filterType: 'eventTypes' | 'cohorts' | 'statuses') => {
+  },
+  [filterOptions, setEventTypes, setCohorts, setStatuses, setPlayerTypes, setOsTypes],
+)
+
+  const selectNone = useCallback(
+    (filterType: 'eventTypes' | 'cohorts' | 'statuses' | 'playerTypes' | 'osTypes') => {
     switch (filterType) {
       case 'eventTypes':
         clearEventTypes()
@@ -205,8 +291,22 @@ export function useEventFilters() {
       case 'statuses':
         clearStatuses()
         break
+      case 'playerTypes':
+        clearPlayerTypes()
+        break
+      case 'osTypes':
+        clearOsTypes()
+        break
     }
-  }, [clearEventTypes, clearCohorts, clearStatuses])
+  },
+  [
+    clearEventTypes,
+    clearCohorts,
+    clearStatuses,
+    clearPlayerTypes,
+    clearOsTypes,
+  ],
+)
   
   return {
     // Current filter state
@@ -232,7 +332,17 @@ export function useEventFilters() {
     toggleCohort,
     setCohorts,
     clearCohorts,
-    
+
+    // Player types
+    togglePlayerType,
+    setPlayerTypes,
+    clearPlayerTypes,
+
+    // OS types
+    toggleOsType,
+    setOsTypes,
+    clearOsTypes,
+
     // Statuses
     toggleStatus,
     setStatuses,
