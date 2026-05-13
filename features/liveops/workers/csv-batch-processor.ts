@@ -13,6 +13,7 @@ import {
   normalizePlayerType,
   normalizeOsType,
   normalizeClient,
+  normalizePlacements,
 } from '../types/events'
 import { parseToISO, addDurationToDate, nowISO } from '../lib/date-utils'
 import { parseRecurrenceFromCsvRow, pickCsvCell } from '../lib/csv-import-fields'
@@ -201,15 +202,15 @@ function extractEventType(row: CsvRow): EventType {
   return 'Unknown'
 }
 
-function extractPlacement(row: CsvRow): string {
+function extractPlacement(row: CsvRow): string[] {
   const placementFields = ['Lobby Icon | Where', 'Placement', 'Location']
   for (const field of placementFields) {
     const value = row[field as keyof CsvRow]
     if (value && typeof value === 'string' && value.trim()) {
-      return sanitizeValue(value)
+      return normalizePlacements(sanitizeValue(value))
     }
   }
-  return 'Unknown'
+  return normalizePlacements(undefined)
 }
 
 function extractDescription(row: CsvRow): string {

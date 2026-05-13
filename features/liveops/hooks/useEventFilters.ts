@@ -43,7 +43,7 @@ export function useEventFilters() {
     const cohorts = Array.from(new Set(events.map(e => e.cohort).flat())).sort()
     const eventTypes = Array.from(new Set(events.map(e => e.eventType))).sort()
     const statuses = Array.from(new Set(events.map(e => e.status))).sort()
-    const placements = Array.from(new Set(events.map(e => e.placement))).sort()
+    const placements = Array.from(new Set(events.flatMap(e => e.placement))).sort()
     const playerTypes = Array.from(new Set(events.map(e => e.playerType))).sort()
     const osTypes = Array.from(new Set(events.map(e => e.osType))).sort()
 

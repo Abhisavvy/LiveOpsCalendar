@@ -19,7 +19,7 @@ function baseEvent(overrides: Partial<LiveOpsEvent> = {}): LiveOpsEvent {
     playerType: 'Payer',
     osType: 'iOS',
     client: 'In-game',
-    placement: 'Lobby',
+    placement: ['Home screen', 'Game board'],
     description: 'Desc',
     status: 'Draft',
     createdAt: '2024-01-01T00:00:00.000Z',

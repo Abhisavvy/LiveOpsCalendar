@@ -8,7 +8,7 @@ import type {
 const EVENT_TYPES = '"Seasonal,IAP,Retention,Progression,System,A/B Test,Unknown"'
 const COHORTS = '"All,New Users,Veteran Players,Premium Users,Free Users,High Spenders,Churned Users"'
 const DURATIONS = '"1h,6h,12h,1d,3d,1w,2w,1m"'
-const PLACEMENTS = '"Main Menu,Store,Post-Battle,Login Screen,Notification,Email,Push"'
+const PLACEMENTS = '"Home screen,Game board,Outro,Game modes"'
 const STATUSES = '"Draft,Scheduled,Active,Paused,Completed,Cancelled"'
 const PRIORITIES = '"Low,Medium,High,Critical"'
 

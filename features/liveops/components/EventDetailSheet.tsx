@@ -48,9 +48,11 @@ import {
   EVENT_STATUSES,
   COHORT_OPTIONS,
   CLIENT_OPTIONS,
+  PLACEMENT_OPTIONS,
   OS_TYPES,
   PLAYER_TYPES,
   normalizeCohorts,
+  normalizePlacements,
 } from '../types/events'
 import { useEventStore } from '../hooks/useEventStore'
 import { RecurrenceConfig as RecurrenceConfigComponent } from './RecurrenceConfig'
@@ -95,7 +97,7 @@ export function EventDetailSheet({
       playerType: 'All',
       osType: 'All',
       client: 'Kinoa',
-      placement: '',
+      placement: ['Home screen'],
       description: '',
       status: 'Draft',
       neverEnds: false,
@@ -122,7 +124,7 @@ export function EventDetailSheet({
         playerType: event.playerType,
         osType: event.osType,
         client: event.client,
-        placement: event.placement,
+        placement: normalizePlacements(event.placement),
         description: event.description,
         status: event.status,
         recurrence: event.recurrence,
@@ -139,7 +141,7 @@ export function EventDetailSheet({
         playerType: 'All',
         osType: 'All',
         client: 'Kinoa',
-        placement: '',
+        placement: ['Home screen'],
         description: '',
         status: 'Draft',
         neverEnds: false,
@@ -152,6 +154,7 @@ export function EventDetailSheet({
     const normalized: EventInput = {
       ...payload,
       cohort: normalizeCohorts(payload.cohort),
+      placement: normalizePlacements(payload.placement),
       end: data.neverEnds ? null : payload.end,
     }
     try {
@@ -310,12 +313,12 @@ export function EventDetailSheet({
             />
 
             {/* Date Range */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="start"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="min-w-0">
                     <FormLabel>Start Date & Time *</FormLabel>
                     <FormControl>
                       <DateTimePicker
@@ -333,7 +336,7 @@ export function EventDetailSheet({
                 control={form.control}
                 name="end"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="min-w-0">
                     <FormLabel>End Date & Time *</FormLabel>
                     <FormControl>
                       <DateTimePicker
@@ -506,7 +509,7 @@ export function EventDetailSheet({
             </div>
 
             {/* Cohort and Placement */}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
                 name="cohort"
@@ -554,10 +557,31 @@ export function EventDetailSheet({
                   <FormItem>
                     <FormLabel>Placement *</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g., Homescreen | Left" {...field} />
+                      <div className="grid grid-cols-2 gap-2">
+                        {PLACEMENT_OPTIONS.map((placement) => {
+                          const current = Array.isArray(field.value) ? field.value : []
+                          const checked = current.includes(placement)
+                          return (
+                            <label key={placement} className="flex items-center gap-2 text-sm">
+                              <Checkbox
+                                checked={checked}
+                                aria-label={placement}
+                                onCheckedChange={(nextChecked) => {
+                                  const isChecked = Boolean(nextChecked)
+                                  const next = isChecked
+                                    ? Array.from(new Set([...current, placement]))
+                                    : current.filter((value) => value !== placement)
+                                  field.onChange(next.length ? next : ['Home screen'])
+                                }}
+                              />
+                              <span>{placement}</span>
+                            </label>
+                          )
+                        })}
+                      </div>
                     </FormControl>
                     <FormDescription>
-                      Where the event appears in-game
+                      Where the event appears in-game (multi-select).
                     </FormDescription>
                     <FormMessage />
                   </FormItem>

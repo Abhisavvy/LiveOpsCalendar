@@ -114,4 +114,17 @@ describe('DateTimePicker', () => {
     const expected = dayjs('2026-02-10 3:15 PM', 'YYYY-MM-DD h:mm A', true).toISOString()
     expect(onChange).toHaveBeenCalledWith(expected)
   })
+
+  it('wraps controls to prevent overlap in narrow layouts', () => {
+    render(<DateTimePicker label="Start" value={null} onChange={vi.fn()} />)
+
+    const dateRow = document.querySelector('[data-datetime-row="date"]')
+    const timeRow = document.querySelector('[data-datetime-row="time"]')
+    const wrapper = document.querySelector('[data-datetime-controls="true"]')
+
+    expect(wrapper).not.toBeNull()
+    expect(wrapper).toHaveClass('flex-col')
+    expect(dateRow).not.toBeNull()
+    expect(timeRow).not.toBeNull()
+  })
 })

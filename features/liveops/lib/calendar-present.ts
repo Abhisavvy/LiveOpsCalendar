@@ -13,6 +13,7 @@ import {
 
 import {
   formatCohorts,
+  formatPlacements,
   type EventStatus,
   type EventType,
   type LiveOpsEvent,
@@ -61,7 +62,8 @@ export function formatEventA11yLabel(event: LiveOpsEvent): string {
   const type = getEventTypeMeta(event.eventType).label
   const status = getStatusMeta(event.status).label
   const cohorts = formatCohorts(event.cohort)
+  const placements = formatPlacements(event.placement)
   const endLabel = event.end ? '' : ' Never ends.'
-  return `${event.title}. Type: ${type}. Status: ${status}. Cohort: ${cohorts}. Placement: ${event.placement}.${endLabel}`
+  return `${event.title}. Type: ${type}. Status: ${status}. Cohort: ${cohorts}. Placement: ${placements}.${endLabel}`
 }
 

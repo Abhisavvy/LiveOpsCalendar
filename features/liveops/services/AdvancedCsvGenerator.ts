@@ -109,8 +109,7 @@ const SAMPLE_DATA = {
 
   // Placements
   placements: [
-    'Main Menu', 'Store', 'Post-Battle', 'Login Screen', 'Notification', 
-    'Email', 'Push', 'In-Game Banner', 'Lobby', 'Settings'
+    'Home screen', 'Game board', 'Outro', 'Game modes'
   ],
 
   // Statuses

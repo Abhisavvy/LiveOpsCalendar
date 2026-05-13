@@ -10,7 +10,7 @@ const baseEvent: LiveOpsEvent = {
   end: '2026-05-02T00:00:00.000Z',
   cohort: ['All'],
   eventType: 'IAP',
-  placement: 'Lobby',
+  placement: ['Home screen'],
   description: '',
   status: 'Draft',
   createdAt: '2026-05-01T00:00:00.000Z',

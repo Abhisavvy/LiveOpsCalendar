@@ -1,5 +1,5 @@
 import Papa from 'papaparse'
-import { LiveOpsEvent, ExportConfig, formatCohorts } from '../types/events'
+import { LiveOpsEvent, ExportConfig, formatCohorts, formatPlacements } from '../types/events'
 import { formatDate, calculateDuration } from './date-utils'
 
 /**
@@ -53,7 +53,7 @@ export function exportEventsToCSV(
           row[csvColumn] = event.eventType
           break
         case 'placement':
-          row[csvColumn] = event.placement
+          row[csvColumn] = formatPlacements(event.placement)
           break
         case 'description':
           row[csvColumn] = event.description

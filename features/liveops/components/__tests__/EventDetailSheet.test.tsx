@@ -16,7 +16,7 @@ function baseStoredEvent(): LiveOpsEvent {
     playerType: 'Payer',
     osType: 'Android',
     client: 'In-game',
-    placement: 'Lobby',
+    placement: ['Home screen', 'Game board'],
     description: '',
     status: 'Draft',
     createdAt: '2026-05-01T00:00:00.000Z',
@@ -31,7 +31,7 @@ const addEventMock = vi.fn(() => ({
   end: null,
   cohort: ['All'],
   eventType: 'IAP',
-  placement: 'Lobby',
+  placement: ['Home screen'],
   description: '',
   status: 'Draft',
   createdAt: '2026-05-01T00:00:00.000Z',
@@ -116,6 +116,17 @@ describe('EventDetailSheet', () => {
     expect(document.querySelector('input[type="datetime-local"]')).toBeNull()
   })
 
+  it('stacks start/end fields on narrow widths', () => {
+    render(<EventDetailSheet isOpen onOpenChange={vi.fn()} />)
+
+    const startLabel = screen.getByText(/Start Date & Time/i)
+    const startItem = startLabel.closest('div')
+    expect(startItem).not.toBeNull()
+    const grid = startItem?.parentElement
+    expect(grid).not.toBeNull()
+    expect(grid).toHaveClass('grid-cols-1')
+  })
+
   it('disables the end input when "Never ends" is checked', () => {
     render(<EventDetailSheet isOpen onOpenChange={vi.fn()} />)
 
@@ -145,5 +156,34 @@ describe('EventDetailSheet', () => {
 
     expect(allCheckbox).toBeChecked()
     expect(d0Checkbox).not.toBeChecked()
+  })
+
+  it('renders placement options with Home screen selected by default', () => {
+    render(<EventDetailSheet isOpen onOpenChange={vi.fn()} />)
+
+    const home = screen.getByRole('checkbox', { name: 'Home screen' })
+    const board = screen.getByRole('checkbox', { name: 'Game board' })
+    const outro = screen.getByRole('checkbox', { name: 'Outro' })
+    const modes = screen.getByRole('checkbox', { name: 'Game modes' })
+
+    expect(home).toBeChecked()
+    expect(board).not.toBeChecked()
+    expect(outro).not.toBeChecked()
+    expect(modes).not.toBeChecked()
+  })
+
+  it('allows selecting multiple placements', () => {
+    render(<EventDetailSheet isOpen onOpenChange={vi.fn()} />)
+
+    const home = screen.getByRole('checkbox', { name: 'Home screen' })
+    const board = screen.getByRole('checkbox', { name: 'Game board' })
+    const outro = screen.getByRole('checkbox', { name: 'Outro' })
+
+    fireEvent.click(board)
+    fireEvent.click(outro)
+
+    expect(home).toBeChecked()
+    expect(board).toBeChecked()
+    expect(outro).toBeChecked()
   })
 })

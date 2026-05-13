@@ -158,140 +158,144 @@ export const DateTimePicker = React.forwardRef<HTMLInputElement, DateTimePickerP
         <Label htmlFor={dateInputId} className="sr-only">
           {label} date
         </Label>
-        <div className="flex items-center gap-2">
-          <DropdownMenu open={disabled ? false : open} onOpenChange={handleOpenChange}>
-            <DropdownMenuTrigger asChild>
-              <Button type="button" variant="outline" size="sm" disabled={disabled}>
-                {label}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              className="w-auto min-w-[280px] p-2"
-              align="start"
-              data-datepicker-panel="true"
-              onCloseAutoFocus={(e) => e.preventDefault()}
-            >
-              <div className="mb-2 flex items-center justify-between gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 shrink-0"
-                  aria-label="Previous month"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    setViewMonth((d) => addMonths(d, -1))
-                  }}
-                >
-                  ‹
+        <div className="flex flex-col gap-2" data-datetime-controls="true">
+          <div className="flex items-center gap-2" data-datetime-row="date">
+            <DropdownMenu open={disabled ? false : open} onOpenChange={handleOpenChange}>
+              <DropdownMenuTrigger asChild>
+                <Button type="button" variant="outline" size="sm" disabled={disabled} className="shrink-0">
+                  {label}
                 </Button>
-                <span className="text-sm font-medium tabular-nums">
-                  {format(viewMonth, 'MMMM yyyy')}
-                </span>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 shrink-0"
-                  aria-label="Next month"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    e.stopPropagation()
-                    setViewMonth((d) => addMonths(d, 1))
-                  }}
-                >
-                  ›
-                </Button>
-              </div>
-              <div className="mb-2 grid grid-cols-7 gap-0.5 text-center text-xs text-muted-foreground">
-                {weekdayLabels.map((d) => (
-                  <div key={d} className="font-medium">
-                    {d}
-                  </div>
-                ))}
-              </div>
-              <div role="grid" aria-label="Calendar" className="grid grid-cols-7 gap-0.5">
-                {calendarDays.map((day) => {
-                  const active = valueDate !== null && isSameDay(day, valueDate)
-                  const inMonth = isSameMonth(day, viewMonth)
-                  const ariaName = `${format(day, 'MMMM d, yyyy')}`
-                  return (
-                    <button
-                      key={day.toISOString()}
-                      type="button"
-                      role="gridcell"
-                      aria-label={ariaName}
-                      data-day-slot="true"
-                      className={cn(
-                        'h-8 rounded-md text-sm tabular-nums transition-colors hover:bg-accent',
-                        !inMonth && 'text-muted-foreground opacity-45',
-                        active && 'border border-primary font-semibold',
-                      )}
-                      onClick={(e) => {
-                        e.preventDefault()
-                        e.stopPropagation()
-                        handlePickDay(day)
-                      }}
-                    >
-                      {format(day, 'd')}
-                    </button>
-                  )
-                })}
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Input
-            ref={forwardedRef}
-            id={dateInputId}
-            disabled={disabled}
-            type="date"
-            spellCheck={false}
-            aria-describedby={ariaDescribedBy}
-            aria-invalid={ariaInvalid}
-            aria-label={dateInputAriaLabel ?? textInputAriaLabel ?? `${label} date`}
-            value={draftDate}
-            onChange={(e) => {
-              const next = e.target.value
-              setDraftDate(next)
-              commitIfValid(next, draftTime, draftMeridiem)
-            }}
-            className="flex-1"
-          />
-          <Input
-            id={timeInputId}
-            disabled={disabled}
-            type="text"
-            spellCheck={false}
-            aria-label={timeInputAriaLabel ?? `${label} time`}
-            value={draftTime}
-            onChange={(e) => {
-              const next = e.target.value
-              setDraftTime(next)
-              commitIfValid(draftDate, next, draftMeridiem)
-            }}
-            placeholder="h:mm"
-            className="w-24"
-          />
-          <Select
-            value={draftMeridiem}
-            onValueChange={(next) => {
-              const meridiem = next === 'PM' ? 'PM' : 'AM'
-              setDraftMeridiem(meridiem)
-              commitIfValid(draftDate, draftTime, meridiem)
-            }}
-          >
-            <SelectTrigger
-              aria-label={meridiemAriaLabel ?? `${label} meridiem`}
-              className="w-20"
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                className="w-auto min-w-[280px] p-2"
+                align="start"
+                data-datepicker-panel="true"
+                onCloseAutoFocus={(e) => e.preventDefault()}
+              >
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    aria-label="Previous month"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setViewMonth((d) => addMonths(d, -1))
+                    }}
+                  >
+                    ‹
+                  </Button>
+                  <span className="text-sm font-medium tabular-nums">
+                    {format(viewMonth, 'MMMM yyyy')}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    aria-label="Next month"
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setViewMonth((d) => addMonths(d, 1))
+                    }}
+                  >
+                    ›
+                  </Button>
+                </div>
+                <div className="mb-2 grid grid-cols-7 gap-0.5 text-center text-xs text-muted-foreground">
+                  {weekdayLabels.map((d) => (
+                    <div key={d} className="font-medium">
+                      {d}
+                    </div>
+                  ))}
+                </div>
+                <div role="grid" aria-label="Calendar" className="grid grid-cols-7 gap-0.5">
+                  {calendarDays.map((day) => {
+                    const active = valueDate !== null && isSameDay(day, valueDate)
+                    const inMonth = isSameMonth(day, viewMonth)
+                    const ariaName = `${format(day, 'MMMM d, yyyy')}`
+                    return (
+                      <button
+                        key={day.toISOString()}
+                        type="button"
+                        role="gridcell"
+                        aria-label={ariaName}
+                        data-day-slot="true"
+                        className={cn(
+                          'h-8 rounded-md text-sm tabular-nums transition-colors hover:bg-accent',
+                          !inMonth && 'text-muted-foreground opacity-45',
+                          active && 'border border-primary font-semibold',
+                        )}
+                        onClick={(e) => {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          handlePickDay(day)
+                        }}
+                      >
+                        {format(day, 'd')}
+                      </button>
+                    )
+                  })}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Input
+              ref={forwardedRef}
+              id={dateInputId}
+              disabled={disabled}
+              type="date"
+              spellCheck={false}
+              aria-describedby={ariaDescribedBy}
+              aria-invalid={ariaInvalid}
+              aria-label={dateInputAriaLabel ?? textInputAriaLabel ?? `${label} date`}
+              value={draftDate}
+              onChange={(e) => {
+                const next = e.target.value
+                setDraftDate(next)
+                commitIfValid(next, draftTime, draftMeridiem)
+              }}
+              className="min-w-[9rem] flex-1"
+            />
+          </div>
+          <div className="flex items-center gap-2" data-datetime-row="time">
+            <Input
+              id={timeInputId}
+              disabled={disabled}
+              type="text"
+              spellCheck={false}
+              aria-label={timeInputAriaLabel ?? `${label} time`}
+              value={draftTime}
+              onChange={(e) => {
+                const next = e.target.value
+                setDraftTime(next)
+                commitIfValid(draftDate, next, draftMeridiem)
+              }}
+              placeholder="h:mm"
+              className="min-w-[6rem] flex-1"
+            />
+            <Select
+              value={draftMeridiem}
+              onValueChange={(next) => {
+                const meridiem = next === 'PM' ? 'PM' : 'AM'
+                setDraftMeridiem(meridiem)
+                commitIfValid(draftDate, draftTime, meridiem)
+              }}
             >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="AM">AM</SelectItem>
-              <SelectItem value="PM">PM</SelectItem>
-            </SelectContent>
-          </Select>
+              <SelectTrigger
+                aria-label={meridiemAriaLabel ?? `${label} meridiem`}
+                className="w-20 shrink-0"
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="AM">AM</SelectItem>
+                <SelectItem value="PM">PM</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
       </div>
     )

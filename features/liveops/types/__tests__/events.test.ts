@@ -13,6 +13,7 @@ import {
   normalizeEventRecordForLoad,
   normalizeOsType,
   normalizePlayerType,
+  normalizePlacements,
 } from '../events'
 
 const baseEvent = {
@@ -21,7 +22,7 @@ const baseEvent = {
   end: '2026-05-02T00:00:00.000Z',
   cohort: ['All'],
   eventType: 'IAP',
-  placement: 'Lobby',
+  placement: ['Home screen'],
   description: '',
   status: 'Draft',
 }
@@ -85,6 +86,26 @@ describe('schema option constants', () => {
     expect(EVENT_TYPES).toContain('Engagement')
     expect(EVENT_TYPES).not.toContain('System')
     expect(EVENT_TYPES).not.toContain('Progression')
+  })
+})
+
+describe('normalizePlacements', () => {
+  it('splits comma or pipe separated strings', () => {
+    expect(normalizePlacements('Home screen, Game board')).toEqual(['Home screen', 'Game board'])
+    expect(normalizePlacements('Home screen | Outro')).toEqual(['Home screen', 'Outro'])
+  })
+
+  it('defaults to Home screen for invalid input', () => {
+    expect(normalizePlacements('')).toEqual(['Home screen'])
+    expect(normalizePlacements(undefined)).toEqual(['Home screen'])
+  })
+
+  it('maps known placements to canonical casing', () => {
+    expect(normalizePlacements(['homescreen', 'GAME BOARD'])).toEqual(['Home screen', 'Game board'])
+  })
+
+  it('preserves unknown placements while keeping defaults', () => {
+    expect(normalizePlacements(['Lobby', 'Home screen'])).toEqual(['Lobby', 'Home screen'])
   })
 })
 
@@ -204,7 +225,7 @@ describe('LiveOpsEventSchema', () => {
     end: '2026-05-02T00:00:00.000Z',
     cohort: ['All'],
     eventType: 'Rolling Retention',
-    placement: 'Lobby',
+    placement: ['Home screen'],
     description: '',
     status: 'Draft',
     createdAt: '2026-05-01T00:00:00.000Z',
@@ -236,7 +257,7 @@ describe('normalizeEventRecordForLoad', () => {
       end: '2026-05-02T00:00:00.000Z',
       cohort: ['D0'],
       eventType: 'Progression',
-      placement: 'P',
+      placement: 'Home screen, Outro',
       description: '',
       status: 'Draft',
       createdAt: '2026-05-01T00:00:00.000Z',
@@ -247,6 +268,7 @@ describe('normalizeEventRecordForLoad', () => {
       playerType: 'All',
       osType: 'All',
       client: 'Kinoa',
+      placement: ['Home screen', 'Outro'],
     })
   })
 })

@@ -1,7 +1,23 @@
 ## Progress (canonical scratchpad)
 
 ### State
+- **2026-05-13 — Recurrence repro (post-restart):** Ticketmania (weekly Tue/Wed/Fri/Sat) and Game Master (daily count=3) both render multiple occurrences in month + list views after dev server restart.
+- **2026-05-13 — Recurrence utils verification:** `vitest run features/liveops/lib/__tests__/recurrence-utils.test.ts features/liveops/hooks/__tests__/useCalendarEvents.test.ts` passes after recurrence expansion implementation.
+- **2026-05-13 — Recurrence TDD:** added recurrence expansion tests; `vitest run features/liveops/lib/__tests__/recurrence-utils.test.ts features/liveops/hooks/__tests__/useCalendarEvents.test.ts` fails (recurrence utils missing + no expansion in calendar).
+- **2026-05-13 — Dev server restart:** restarted `next dev -H 127.0.0.1` with Watchpack polling on **http://127.0.0.1:3000**.
+- **2026-05-13 — Placement multi-select verification:** `vitest run` for placement-related suites (events, EventDetailSheet, store/filters, CSV/export, a11y) passes under Node v22.22.2.
+- **2026-05-13 — Placement UI TDD:** added EventDetailSheet placement tests; `vitest run features/liveops/components/__tests__/EventDetailSheet.test.tsx` fails (placement still rendered as text input).
+- **2026-05-13 — Placement multi-select TDD:** updated placement tests in `events.test.ts`; `vitest run features/liveops/types/__tests__/events.test.ts` fails as expected (schema still string-based + normalizePlacements missing).
+- **2026-05-13 — Dev server restart (main):** restarted with `WATCHPACK_POLLING=true` after clearing orphaned Next.js listeners; `next dev -H 127.0.0.1` now returns **200** on `/` at **http://127.0.0.1:3000**.
+- **2026-05-13 — Calendar client tiles:** applied explicit client background + event border overrides (`--fc-event-*` + `!important`) so Kinoa stays translucent and event-type left accents render; test: `npm test -- run features/liveops/components/__tests__/CalendarEventContent.test.tsx`.
+- **2026-05-13 — Tailwind safelist (FullCalendar):** added `fc-*` structural classes to `tailwind.config.js` so `.fc-event` and related rules are not purged; restarted dev server; test: `npm test -- run features/liveops/components/__tests__/CalendarEventContent.test.tsx`.
+- **2026-05-13 — DateTimePicker layout:** added `flex-wrap` + min widths so time + meridiem controls wrap instead of overlapping; test: `node node_modules/vitest/dist/cli.js run --dir components/ui/__tests__ --exclude "**/.worktrees/**"`.
+- **2026-05-13 — EventDetailSheet date range:** stacked date range on small widths (`grid-cols-1` with `sm:grid-cols-2`) and added `min-w-0` to prevent overlap; test: `node node_modules/vitest/dist/cli.js run --dir features/liveops/components/__tests__ --exclude "**/.worktrees/**"`.
+- **2026-05-13 — DateTimePicker controls:** split date row and time/meridiem row to eliminate overlap and ensure AM/PM visibility; test: `node node_modules/vitest/dist/cli.js run --dir components/ui/__tests__ --exclude "**/.worktrees/**"`.
+- **2026-05-13 — Dev server restart (layout update):** restarted `next dev -H 127.0.0.1` to pick up DateTimePicker row layout changes; running on **http://127.0.0.1:3000**.
+- **2026-05-13 — Dev server cleanup:** stopped the older recovery dev server on **3001** to avoid stale UI while validating layout changes.
 - **2026-05-13 — Dev server (recovery worktree):** **RUNNING** ✓ `npm run dev` on **http://localhost:3001** (Node v22.22.2). Warning noted: Turbopack detected multiple lockfiles.
+- **2026-05-13 — Dev server restart (main):** `next dev -H 127.0.0.1` now **RUNNING** on **http://127.0.0.1:3000** (Node v22.22.2).
 - **2026-05-13 — Worktree setup (liveops-12h-time-inputs):** `npm install` failed with **ERESOLVE** (eslint 9 vs @eslint/js 10 peer). Using existing checked-out `node_modules` for now; will validate with tests.
 - **2026-05-13 — Worktree baseline tests:** `npm test -- run` failed (missing vitest chunk in `node_modules` after install failure). Need dependency reinstall before baseline passes.
 - **2026-05-13 — Worktree dependency install (legacy peer deps):** `npm install --legacy-peer-deps` succeeded; warning for Node engine mismatch (repo expects Node 22, current Node 25.9.0).
@@ -117,6 +133,7 @@
 - **Experiments banner removal:** implemented per spec; **`npm run dev`** (**http://localhost:3000**) remains a sensible smoke check after config/UI changes.
 
 ### Recent findings
+- [x] **2026-05-13 — Dev server verification:** `curl -I http://127.0.0.1:3000/` returns **200 OK** after polling restart.
 - [x] **2026-05-12 — Dev server restart:** Cleared listeners on port **3000**; **`npm run dev`** → **http://localhost:3000**; **Ready** log confirmed (Next.js 16.2 / Turbopack).
 - **Custom recurrence verification (2026-05-12):** `npm test -- run`, `npm run lint`, `npm run type-check` — **all pass** after adding custom basis + weekly/monthly support.
 - **Example templates modal verification (2026-05-12):** `npm test -- run`, `npm run lint`, `npm run type-check` — **all pass** after moving templates into the guided modal launcher.

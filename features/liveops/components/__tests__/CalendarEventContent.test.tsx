@@ -1,10 +1,13 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { readFileSync } from 'node:fs'
+import { createRequire } from 'node:module'
 import path from 'node:path'
 import { CalendarEventContent } from '../CalendarEventContent'
 
 describe('CalendarEventContent', () => {
+  const requireConfig = createRequire(import.meta.url)
+
   it('renders title/cohort/status as text (no HTML injection)', () => {
     render(
       <CalendarEventContent
@@ -67,6 +70,36 @@ describe('CalendarEventContent', () => {
     expect(css).toMatch(/\.fc-col-header-cell\s*\{[^}]*background-color:\s*hsl\(var\(--background\)\)/)
     expect(css).toMatch(/\.fc-col-header-cell\s*\{[^}]*color:\s*hsl\(var\(--foreground\)\)/)
     expect(css).toMatch(/\.fc\s+\.fc-scrollgrid-section-header\s+th/)
+  })
+
+  it('forces event backgrounds to use client-aware color tokens', () => {
+    const cssPath = path.join(process.cwd(), 'app/globals.css')
+    const css = readFileSync(cssPath, 'utf-8')
+
+    expect(css).toMatch(/\.fc-event\.client-kinoa\s*\{[^}]*--event-bg:/)
+    expect(css).toMatch(/\.fc-event\.client-kinoa\s*\{[^}]*background-color:\s*var\(--event-bg\)\s*!important/)
+    expect(css).toMatch(/\.fc-event\.client-in-game\s*\{[^}]*--event-bg:/)
+    expect(css).toMatch(/\.fc-event\.client-in-game\s*\{[^}]*background-color:\s*var\(--event-bg\)\s*!important/)
+    expect(css).toMatch(/\.fc-event\.event-iap\s*\{[^}]*border-left-width:\s*4px/)
+    expect(css).toMatch(/\.fc-event\.event-iap\s*\{[^}]*border-color:\s*var\(--event-border\)\s*!important/)
+  })
+
+  it('safelists FullCalendar structural classes for Tailwind', () => {
+    const config = requireConfig('../../../../tailwind.config.js') as {
+      safelist?: Array<string | RegExp>
+    }
+    const safelist = config.safelist ?? []
+    const includes = (value: string) =>
+      safelist.some((entry) => (typeof entry === 'string' ? entry === value : entry.test(value)))
+
+    expect(includes('fc-event')).toBe(true)
+    expect(includes('fc-event-main')).toBe(true)
+    expect(includes('fc-event-main-frame')).toBe(true)
+    expect(includes('fc-h-event')).toBe(true)
+    expect(includes('fc-v-event')).toBe(true)
+    expect(includes('fc-daygrid-event')).toBe(true)
+    expect(includes('fc-timegrid-event')).toBe(true)
+    expect(includes('fc-list-event')).toBe(true)
   })
 })
 

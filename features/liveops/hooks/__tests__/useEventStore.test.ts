@@ -11,7 +11,7 @@ function baseInput(overrides: Partial<EventInput> = {}): EventInput {
     end: addDurationToDate(start, '1d'),
     cohort: ['All'],
     eventType: 'IAP',
-    placement: 'Homescreen',
+    placement: ['Home screen'],
     description: '',
     status: 'Draft',
     playerType: 'All',

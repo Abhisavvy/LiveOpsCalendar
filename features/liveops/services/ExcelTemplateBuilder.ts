@@ -294,7 +294,7 @@ export class ExcelTemplateBuilder {
       eventType: ['Seasonal', 'IAP', 'Retention', 'Progression'],
       cohort: ['All', 'New Users', 'Veteran Players', 'Premium Users'],
       duration: ['1d', '3d', '1w', '2w'],
-      placement: ['Main Menu', 'Store', 'Post-Battle', 'Login Screen'],
+      placement: ['Home screen', 'Game board', 'Outro', 'Game modes'],
       description: [
         'Limited-time spring themed content',
         'Special discounts on premium items', 

@@ -140,8 +140,8 @@
     border-radius: 4px;
     border-width: 2px;
     border-left-width: 4px;
-    border-color: var(--event-border, hsl(var(--border)));
-    background-color: var(--event-bg);
+    border-color: var(--event-border, hsl(var(--border))) !important;
+    background-color: var(--event-bg) !important;
     font-weight: 500;
     font-size: 0.875rem;
     box-shadow: none;
@@ -221,34 +221,68 @@
   .fc-event.event-iap {
     --event-accent: hsl(var(--event-iap));
     --event-border: hsl(var(--event-iap));
+    --fc-event-border-color: var(--event-border);
+    border-width: 2px !important;
+    border-left-width: 4px !important;
+    border-style: solid;
+    border-color: var(--event-border) !important;
+    border-left-color: var(--event-border) !important;
   }
 
   .fc-event.event-retention {
     --event-accent: hsl(var(--event-retention));
     --event-border: hsl(var(--event-retention));
+    --fc-event-border-color: var(--event-border);
+    border-width: 2px !important;
+    border-left-width: 4px !important;
+    border-style: solid;
+    border-color: var(--event-border) !important;
+    border-left-color: var(--event-border) !important;
   }
 
   .fc-event.event-rolling-retention {
     --event-accent: hsl(var(--event-rolling-retention));
     --event-border: hsl(var(--event-rolling-retention));
+    --fc-event-border-color: var(--event-border);
+    border-width: 2px !important;
+    border-left-width: 4px !important;
+    border-style: solid;
+    border-color: var(--event-border) !important;
+    border-left-color: var(--event-border) !important;
   }
 
   .fc-event.event-engagement {
     --event-accent: hsl(var(--event-engagement));
     --event-border: hsl(var(--event-engagement));
+    --fc-event-border-color: var(--event-border);
+    border-width: 2px !important;
+    border-left-width: 4px !important;
+    border-style: solid;
+    border-color: var(--event-border) !important;
+    border-left-color: var(--event-border) !important;
   }
 
   .fc-event.event-unknown {
     --event-accent: hsl(var(--event-unknown));
     --event-border: hsl(var(--event-unknown));
+    --fc-event-border-color: var(--event-border);
+    border-width: 2px !important;
+    border-left-width: 4px !important;
+    border-style: solid;
+    border-color: var(--event-border) !important;
+    border-left-color: var(--event-border) !important;
   }
 
   .fc-event.client-kinoa {
     --event-bg: hsl(var(--client-kinoa) / var(--client-kinoa-alpha));
+    --fc-event-bg-color: var(--event-bg);
+    background-color: var(--event-bg) !important;
   }
 
   .fc-event.client-in-game {
     --event-bg: hsl(var(--client-in-game) / var(--client-in-game-alpha));
+    --fc-event-bg-color: var(--event-bg);
+    background-color: var(--event-bg) !important;
   }
   
   /* Toolbar buttons (make them feel like shadcn buttons) */

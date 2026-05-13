@@ -18,6 +18,9 @@ export type OsType = typeof OS_TYPES[number]
 export const CLIENT_OPTIONS = ['Kinoa', 'In-game'] as const
 export type ClientOption = typeof CLIENT_OPTIONS[number]
 
+export const PLACEMENT_OPTIONS = ['Home screen', 'Game board', 'Outro', 'Game modes'] as const
+export type PlacementOption = typeof PLACEMENT_OPTIONS[number]
+
 const EVENT_TYPE_LOOKUP = EVENT_TYPES.reduce<Record<string, EventType>>((acc, value) => {
   acc[value.toLowerCase()] = value
   return acc
@@ -44,6 +47,18 @@ const CLIENT_LOOKUP: Record<string, ClientOption> = {
   'in game': 'In-game',
 }
 
+/**
+ * Normalize placement strings for consistent lookup keys.
+ */
+function normalizePlacementKey(value: string): string {
+  return value.toLowerCase().replace(/[\s-]+/g, '')
+}
+
+const PLACEMENT_LOOKUP = PLACEMENT_OPTIONS.reduce<Record<string, PlacementOption>>((acc, value) => {
+  acc[normalizePlacementKey(value)] = value
+  return acc
+}, {})
+
 export function normalizeEventType(input: unknown): EventType {
   if (typeof input !== 'string' || !input.trim()) return 'Unknown'
   const lower = input.trim().toLowerCase()
@@ -67,6 +82,45 @@ export function normalizeClient(input: unknown): ClientOption {
   if (typeof input !== 'string' || !input.trim()) return 'Kinoa'
   const key = input.trim().toLowerCase()
   return CLIENT_LOOKUP[key] ?? 'Kinoa'
+}
+
+/**
+ * Map raw placement strings to canonical labels, preserving unknown values.
+ */
+function mapRawStringsToPlacements(raw: string[]): string[] {
+  const normalized = raw
+    .map((value) => {
+      const trimmed = value.trim()
+      if (!trimmed) return null
+      const matched = PLACEMENT_LOOKUP[normalizePlacementKey(trimmed)]
+      return matched ?? trimmed
+    })
+    .filter((value): value is string => Boolean(value))
+  return Array.from(new Set(normalized))
+}
+
+/**
+ * Normalize placement input (array or comma/pipe delimited string).
+ */
+export function normalizePlacements(input: unknown): string[] {
+  if (input == null) return ['Home screen']
+  if (typeof input === 'string') {
+    if (!input.trim()) return ['Home screen']
+    return mapRawStringsToPlacements(input.split(/[,|]/))
+  }
+  if (Array.isArray(input)) {
+    const strings = input.filter((value): value is string => typeof value === 'string')
+    const normalized = mapRawStringsToPlacements(strings)
+    return normalized.length ? normalized : ['Home screen']
+  }
+  return ['Home screen']
+}
+
+/**
+ * Format placements for display and search.
+ */
+export function formatPlacements(input: string[] | string): string {
+  return normalizePlacements(input).join(', ')
 }
 
 export const EVENT_STATUSES = ['Draft', 'Scheduled', 'Active', 'Ended'] as const
@@ -128,6 +182,7 @@ export function normalizeEventRecordForLoad(event: Record<string, unknown>): Rec
     playerType: normalizePlayerType(event.playerType),
     osType: normalizeOsType(event.osType),
     client: normalizeClient(event.client),
+    placement: normalizePlacements(event.placement),
   }
 }
 
@@ -184,7 +239,7 @@ const LiveOpsEventObjectSchema = z.object({
   playerType: preprocessedPlayerType,
   osType: preprocessedOsType,
   client: preprocessedClient,
-  placement: z.string().min(1, 'Placement is required'),
+  placement: z.array(z.string().min(1)).min(1, 'Placement is required'),
   description: z.string().max(1000, 'Description too long').default(''),
   status: z.enum(EVENT_STATUSES).default('Draft'),
   recurrence: RecurrenceConfigSchema.optional(),

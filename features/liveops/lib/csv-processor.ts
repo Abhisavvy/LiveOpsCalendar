@@ -15,6 +15,8 @@ import {
   normalizeOsType,
   normalizeClient,
   formatCohorts,
+  formatPlacements,
+  normalizePlacements,
 } from '../types/events'
 import { parseToISO, addDurationToDate, nowISO } from './date-utils'
 import { parseRecurrenceFromCsvRow, pickCsvCell } from './csv-import-fields'
@@ -162,15 +164,15 @@ function extractEventType(row: CsvRow): EventType {
 /**
  * Extract placement from CSV row
  */
-function extractPlacement(row: CsvRow): string {
+function extractPlacement(row: CsvRow): string[] {
   const placementFields = ['Lobby Icon | Where', 'Placement', 'Location']
   for (const field of placementFields) {
     const value = row[field as keyof CsvRow]
     if (value && typeof value === 'string' && value.trim()) {
-      return sanitizeValue(value)
+      return normalizePlacements(sanitizeValue(value))
     }
   }
-  return 'Unknown'
+  return normalizePlacements(undefined)
 }
 
 /**
@@ -569,7 +571,7 @@ export function exportEventsToCsv(events: LiveOpsEvent[], originalColumnNames: b
         durationOption,
         formatCohorts(event.cohort),
         event.eventType,
-        event.placement,
+        formatPlacements(event.placement),
         event.description,
         event.playerType,
         event.osType,
@@ -587,7 +589,7 @@ export function exportEventsToCsv(events: LiveOpsEvent[], originalColumnNames: b
       endSlice,
       formatCohorts(event.cohort),
       event.eventType,
-      event.placement,
+      formatPlacements(event.placement),
       event.description,
       event.status,
       event.playerType,

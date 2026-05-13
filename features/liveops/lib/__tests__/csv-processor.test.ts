@@ -117,7 +117,7 @@ describe('CSV Processor', () => {
         playerType: 'All',
         osType: 'All',
         client: 'Kinoa',
-        placement: 'Homescreen | Left',
+        placement: ['Home screen', 'Game board'],
         description: 'Test description',
         status: 'Draft',
         createdAt: '2024-01-01T00:00:00.000Z',

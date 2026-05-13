@@ -8,6 +8,16 @@ module.exports = {
     './features/**/*.{ts,tsx}',
     './src/**/*.{ts,tsx}',
   ],
+  safelist: [
+    'fc-event',
+    'fc-event-main',
+    'fc-event-main-frame',
+    'fc-h-event',
+    'fc-v-event',
+    'fc-daygrid-event',
+    'fc-timegrid-event',
+    'fc-list-event',
+  ],
   prefix: "",
   theme: {
     container: {

@@ -11,7 +11,9 @@ import {
   createEventId,
   CsvProcessingResult,
   formatCohorts,
+  formatPlacements,
   normalizeCohorts,
+  normalizePlacements,
 } from '../types/events'
 import { saveEvents, loadEvents, saveFilters, loadFilters } from '../lib/storage'
 import { nowISO } from '../lib/date-utils'
@@ -96,7 +98,7 @@ export const useEventStore = create<EventStore>()(
             playerType: input.playerType,
             osType: input.osType,
             client: input.client,
-            placement: input.placement,
+            placement: normalizePlacements(input.placement),
             description: input.description,
             status: input.status || 'Draft',
             recurrence: input.recurrence,
@@ -121,7 +123,10 @@ export const useEventStore = create<EventStore>()(
           set((state) => {
             const event = state.events[eventIndex]
             if (event) {
-              Object.assign(event, input, { updatedAt: nowISO() })
+              const normalizedInput = input.placement
+                ? { ...input, placement: normalizePlacements(input.placement) }
+                : input
+              Object.assign(event, normalizedInput, { updatedAt: nowISO() })
             }
             state.lastUpdated = nowISO()
           })
@@ -209,7 +214,7 @@ export const useEventStore = create<EventStore>()(
             playerType: input.playerType,
             osType: input.osType,
             client: input.client,
-            placement: input.placement,
+            placement: normalizePlacements(input.placement),
             description: input.description,
             status: input.status || 'Draft',
             recurrence: input.recurrence,
@@ -238,7 +243,7 @@ export const useEventStore = create<EventStore>()(
             playerType: input.playerType,
             osType: input.osType,
             client: input.client,
-            placement: input.placement,
+            placement: normalizePlacements(input.placement),
             description: input.description,
             status: input.status || 'Draft',
             recurrence: input.recurrence,
@@ -338,7 +343,7 @@ export const useEventStore = create<EventStore>()(
             filtered = filtered.filter(event => 
               event.title.toLowerCase().includes(query) ||
               event.description.toLowerCase().includes(query) ||
-              event.placement.toLowerCase().includes(query) ||
+              formatPlacements(event.placement).toLowerCase().includes(query) ||
               formatCohorts(event.cohort).toLowerCase().includes(query)
             )
           }
@@ -483,6 +488,10 @@ export const useEventStore = create<EventStore>()(
         },
 
         getUniqueValues: (field: 'cohort' | 'eventType' | 'placement') => {
+          if (field === 'placement') {
+            const placements = get().events.flatMap(event => event.placement)
+            return Array.from(new Set(placements)).sort()
+          }
           const values = get().events.map(e => e[field])
           return Array.from(new Set(values)).sort()
         },

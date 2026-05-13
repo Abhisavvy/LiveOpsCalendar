@@ -38,7 +38,7 @@ function makeStoredEvent(overrides: Partial<LiveOpsEvent> = {}): LiveOpsEvent {
     playerType: overrides.playerType ?? 'All',
     osType: overrides.osType ?? 'All',
     client: overrides.client ?? 'Kinoa',
-    placement: overrides.placement ?? 'Homescreen',
+    placement: overrides.placement ?? ['Home screen'],
     description: overrides.description ?? '',
     status: overrides.status ?? 'Draft',
     createdAt: overrides.createdAt ?? nowISO(),

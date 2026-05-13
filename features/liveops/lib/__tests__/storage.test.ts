@@ -30,7 +30,7 @@ function minimalStoredEvent(
     end: null,
     cohort: ['D0'],
     eventType: 'IAP',
-    placement: 'Lobby',
+    placement: ['Home screen'],
     description: '',
     status: 'Draft',
     createdAt: '2026-05-01T00:00:00.000Z',
