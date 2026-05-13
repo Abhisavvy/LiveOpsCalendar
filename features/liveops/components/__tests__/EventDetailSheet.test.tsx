@@ -104,11 +104,15 @@ describe('EventDetailSheet', () => {
     expect(clientSel.textContent?.includes('In-game')).toBe(true)
   })
 
-  it('uses DateTimePicker (calendar trigger + text fields) for start/end, not datetime-local', () => {
+  it('uses DateTimePicker date + time inputs for start/end', () => {
     render(<EventDetailSheet isOpen onOpenChange={vi.fn()} />)
 
     expect(screen.getByRole('button', { name: /^start$/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /^end$/i })).toBeInTheDocument()
+    expect(screen.getByLabelText(/start date/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/start time/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/end date/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/end time/i)).toBeInTheDocument()
     expect(document.querySelector('input[type="datetime-local"]')).toBeNull()
   })
 

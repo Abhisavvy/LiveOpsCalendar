@@ -13,6 +13,8 @@ import {
   doDateRangesOverlap,
   formatForInput,
   formatDateTimeForInput,
+  formatTimeForInput,
+  formatMeridiemForInput,
   inputDateToISO,
 } from '../date-utils'
 import { DurationOption } from '../../types/events'
@@ -167,6 +169,13 @@ describe('Date Utilities', () => {
       expect(inputDateToISO(inputDate, inputTime)).toBe(expected)
     })
 
+    it('parses 12-hour time with AM/PM', () => {
+      const inputDate = '2024-01-15'
+      const inputTime = '2:30 PM'
+      const expected = dayjs(`${inputDate} ${inputTime}`, 'YYYY-MM-DD h:mm A', true).toISOString()
+      expect(inputDateToISO(inputDate, inputTime)).toBe(expected)
+    })
+
     it('should parse datetime-local-shaped strings as local wall clock', () => {
       const datetimeLocal = '2024-01-15T14:30'
       const expected = dayjs(datetimeLocal, 'YYYY-MM-DDTHH:mm', true).toISOString()
@@ -184,6 +193,12 @@ describe('Date Utilities', () => {
     it('should return null for empty/invalid input instead of throwing', () => {
       expect(inputDateToISO('')).toBeNull()
       expect(inputDateToISO('not-a-date')).toBeNull()
+    })
+
+    it('formats time + meridiem parts for inputs', () => {
+      const iso = '2024-06-01T15:05:00.000Z'
+      expect(formatTimeForInput(iso)).toBe(dayjs(iso).format('h:mm'))
+      expect(formatMeridiemForInput(iso)).toBe(dayjs(iso).format('A'))
     })
   })
 })

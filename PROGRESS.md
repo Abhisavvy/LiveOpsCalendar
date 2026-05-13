@@ -2,6 +2,28 @@
 
 ### State
 - **2026-05-13 — Dev server (recovery worktree):** **RUNNING** ✓ `npm run dev` on **http://localhost:3001** (Node v22.22.2). Warning noted: Turbopack detected multiple lockfiles.
+- **2026-05-13 — Worktree setup (liveops-12h-time-inputs):** `npm install` failed with **ERESOLVE** (eslint 9 vs @eslint/js 10 peer). Using existing checked-out `node_modules` for now; will validate with tests.
+- **2026-05-13 — Worktree baseline tests:** `npm test -- run` failed (missing vitest chunk in `node_modules` after install failure). Need dependency reinstall before baseline passes.
+- **2026-05-13 — Worktree dependency install (legacy peer deps):** `npm install --legacy-peer-deps` succeeded; warning for Node engine mismatch (repo expects Node 22, current Node 25.9.0).
+- **2026-05-13 — Toolchain alignment:** switched worktree shell to **Node v22.22.2 / npm v10.9.7** via `nvm use 22` for test compatibility.
+- **2026-05-13 — Test runner status:** `npm test -- run` still errors with **ERR_MODULE_NOT_FOUND** on `vitest/dist/chunks/cac.DJJmV0dT.js` (file exists; direct `node node_modules/vitest/dist/cli.js --version` works). Direct `vitest run` executes but picks up tests inside `.worktrees/` and fails broadly (27 failed).
+- **2026-05-13 — TDD (date-utils):** added 12h parsing + time/meridiem formatting tests; `vitest run features/liveops/lib/__tests__/date-utils.test.ts` fails as expected (missing helpers + AM/PM parsing).
+- **2026-05-13 — Date utils implementation:** added 12h time helpers + AM/PM parsing; `vitest run features/liveops/lib/__tests__/date-utils.test.ts` now passes.
+- **2026-05-13 — DateTimePicker TDD attempt:** targeted vitest runs are still resolved at repo root, causing `.worktrees/` pollution and missing `@testing-library/user-event` (not in `node_modules`). Need to install user-event and keep tests scoped.
+- **2026-05-13 — Worktree cleanup attempt:** `rm -rf node_modules` failed due to `.claude/settings.local.json` permission errors in dependency folders.
+- **2026-05-13 — Worktree cleanup:** removed `node_modules` with elevated permissions to allow clean reinstall.
+- **2026-05-13 — Worktree reinstall:** `npm install --legacy-peer-deps` completed (691 packages); warnings for deprecated packages and audit vulnerabilities noted.
+- **2026-05-13 — Test dependency:** added `@testing-library/user-event` dev dependency for DateTimePicker tests.
+- **2026-05-13 — TDD (DateTimePicker):** `vitest run components/ui/__tests__/DateTimePicker.test.tsx` now runs in worktree and fails as expected (missing date/time/meridiem inputs).
+- **2026-05-13 — DateTimePicker implementation:** split date/time inputs + AM/PM select; added jsdom pointer-capture + scrollIntoView stubs; `vitest run components/ui/__tests__/DateTimePicker.test.tsx` passes.
+- **2026-05-13 — TDD (RecurrenceConfig summary):** added local 12h until summary test; `vitest run features/liveops/components/__tests__/RecurrenceConfig.test.tsx` fails as expected.
+- **2026-05-13 — RecurrenceConfig summary:** updated until summary to local 12h format; `vitest run features/liveops/components/__tests__/RecurrenceConfig.test.tsx` passes.
+- **2026-05-13 — EventDetailSheet regression:** `vitest run features/liveops/components/__tests__/EventDetailSheet.test.tsx` passes after DateTimePicker changes.
+- **2026-05-13 — Calendar styling verification:** confirmed `client-*` class mapping, event-type dot + left border, and legend swatches remain intact; no code changes needed.
+- **2026-05-13 — Focused verification:** `vitest run features/liveops/lib/__tests__/date-utils.test.ts components/ui/__tests__/DateTimePicker.test.tsx features/liveops/components/__tests__/EventDetailSheet.test.tsx features/liveops/components/__tests__/RecurrenceConfig.test.tsx` passes.
+- **2026-05-13 — Full test run:** `npm test -- run` passes (34 files, 261 tests).
+- **2026-05-13 — Worktree status check:** modifications staged for time input changes, test setup stubs, and user-event dependency (see git status).
+- **2026-05-13 — Base branch lookup:** merge-base found for `main` (commit `912b5a0a`).
 - **2026-05-13 — LiveOps recovery sweep + model updates:** **COMPLETED** ✓ Restored **player type**, **OS type**, **client** fields and **new event types** (Rolling Retention + Engagement), added normalization helpers, and hardened storage load/import validation for nullable `end` + malformed cohorts. Tests: `npm test -- run features/liveops/types/__tests__/events.test.ts features/liveops/lib/__tests__/storage.test.ts`.
 - **2026-05-13 — Audience filter semantics:** **COMPLETED** ✓ Cohort filtering now **ANDs** selections and treats **All** as a wildcard (event + filter), player/OS filters treat **All** as a wildcard, UI filters + chips updated, and filter stats honor `All` as inactive. Tests: `npm test -- run features/liveops/hooks/__tests__/useEventStore.test.ts features/liveops/hooks/__tests__/useEventFilters.test.ts`.
 - **2026-05-13 — Event detail sheet fields/actions:** **COMPLETED** ✓ Duplicate/delete moved to the top of edit sheet; **Player Type**, **OS Type**, **Client** selects added with defaults. Tests: `npm test -- run features/liveops/components/__tests__/EventDetailSheet.test.tsx`.
@@ -154,3 +176,7 @@
 
 ### Bugs / blockers
 - [!] Some dependency installs may still require `--legacy-peer-deps` (peer dependency resolution needs cleanup)
+- [!] `npm install` in liveops-12h-time-inputs worktree hit **ERESOLVE** (eslint/@eslint/js peer mismatch).
+- [!] `npm test -- run` still errors with **ERR_MODULE_NOT_FOUND** for a vitest chunk (file exists); direct `vitest run` is polluted by `.worktrees/` tests.
+- [!] DateTimePicker tests required `@testing-library/user-event` (now added); still need to re-run after dependency fix.
+- [!] Worktree `node_modules` removed with elevated permissions; reinstall required.

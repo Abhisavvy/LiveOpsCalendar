@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import React from 'react'
+import dayjs from 'dayjs'
 import { DateTimePicker } from '../date-time-picker'
 
 describe('DateTimePicker', () => {
@@ -84,5 +85,33 @@ describe('DateTimePicker', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it('renders separate date + time inputs with AM/PM', () => {
+    const iso = '2026-01-05T13:45:00.000Z'
+    render(<DateTimePicker label="Start" value={iso} onChange={vi.fn()} />)
+
+    expect(screen.getByLabelText(/start date/i)).toHaveValue(dayjs(iso).format('YYYY-MM-DD'))
+    expect(screen.getByLabelText(/start time/i)).toHaveValue(dayjs(iso).format('h:mm'))
+    expect(screen.getByRole('combobox', { name: /start meridiem/i }))
+      .toHaveTextContent(dayjs(iso).format('A'))
+  })
+
+  it('emits ISO when date, time, and meridiem are valid', async () => {
+    const user = userEvent.setup()
+    const onChange = vi.fn()
+    render(<DateTimePicker label="Start" value={null} onChange={onChange} />)
+
+    const dateInput = screen.getByLabelText(/start date/i)
+    const timeInput = screen.getByLabelText(/start time/i)
+    const meridiem = screen.getByRole('combobox', { name: /start meridiem/i })
+
+    await user.type(dateInput, '2026-02-10')
+    await user.type(timeInput, '3:15')
+    await user.click(meridiem)
+    await user.click(screen.getByRole('option', { name: 'PM' }))
+
+    const expected = dayjs('2026-02-10 3:15 PM', 'YYYY-MM-DD h:mm A', true).toISOString()
+    expect(onChange).toHaveBeenCalledWith(expected)
   })
 })

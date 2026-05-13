@@ -371,7 +371,7 @@ function getRecurrenceSummary(config: RecurrenceConfigModel): string {
   
   // End condition
   if (until) {
-    summary += ` until ${dayjs.utc(until).format('MMM D, YYYY HH:mm')}`
+    summary += ` until ${dayjs(until).format('MMM D, YYYY h:mm A')}`
   } else if (count) {
     summary += ` for ${count} occurrence${count === 1 ? '' : 's'}`
   }
