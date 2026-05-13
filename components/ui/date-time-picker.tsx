@@ -18,12 +18,24 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
-import { formatDateTimeForInput, inputDateToISO } from '@/features/liveops/lib/date-utils'
+import {
+  formatForInput,
+  formatTimeForInput,
+  formatMeridiemForInput,
+  inputDateToISO,
+} from '@/features/liveops/lib/date-utils'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 export interface DateTimePickerProps {
   label: string
@@ -33,6 +45,12 @@ export interface DateTimePickerProps {
   disabled?: boolean
   /** Optional separate accessible name for the text field (e.g. "End date" for form QA tests). */
   textInputAriaLabel?: string
+  /** Optional separate accessible name for the date field. */
+  dateInputAriaLabel?: string
+  /** Optional separate accessible name for the time field. */
+  timeInputAriaLabel?: string
+  /** Optional separate accessible name for the AM/PM selector. */
+  meridiemAriaLabel?: string
   /** Passed by react-hook-form + FormControl (Slot) onto the underlying text field */
   id?: string
   'aria-describedby'?: string
@@ -57,6 +75,9 @@ export const DateTimePicker = React.forwardRef<HTMLInputElement, DateTimePickerP
       className,
       disabled,
       textInputAriaLabel,
+      dateInputAriaLabel,
+      timeInputAriaLabel,
+      meridiemAriaLabel,
       id: idFromField,
       'aria-describedby': ariaDescribedBy,
       'aria-invalid': ariaInvalid,
@@ -66,13 +87,21 @@ export const DateTimePicker = React.forwardRef<HTMLInputElement, DateTimePickerP
     const fallbackInputId = useId()
     const inputId = idFromField ?? fallbackInputId
 
-    const committed = value ? formatDateTimeForInput(value) : ''
-    const [draft, setDraft] = React.useState(committed)
+    const committedDate = value ? formatForInput(value) : ''
+    const committedTime = value ? formatTimeForInput(value) : ''
+    const committedMeridiem = value ? formatMeridiemForInput(value) : 'AM'
+    const [draftDate, setDraftDate] = React.useState(committedDate)
+    const [draftTime, setDraftTime] = React.useState(committedTime)
+    const [draftMeridiem, setDraftMeridiem] = React.useState<'AM' | 'PM'>(
+      committedMeridiem === 'PM' ? 'PM' : 'AM',
+    )
     const lastExplicitPickRef = React.useRef<Date | null>(null)
 
     React.useEffect(() => {
-      setDraft(committed)
-    }, [committed])
+      setDraftDate(committedDate)
+      setDraftTime(committedTime)
+      setDraftMeridiem(committedMeridiem === 'PM' ? 'PM' : 'AM')
+    }, [committedDate, committedTime, committedMeridiem])
 
     const [open, setOpen] = React.useState(false)
     const [viewMonth, setViewMonth] = React.useState(() => new Date())
@@ -87,14 +116,15 @@ export const DateTimePicker = React.forwardRef<HTMLInputElement, DateTimePickerP
       }
     }
 
-    const handleTextChange = (raw: string) => {
-      setDraft(raw)
-      const trimmed = raw.trim()
-      if (!trimmed) {
+    const commitIfValid = (nextDate: string, nextTime: string, nextMeridiem: 'AM' | 'PM') => {
+      if (!nextDate && !nextTime) {
         onChange(null)
         return
       }
-      const iso = inputDateToISO(trimmed)
+      if (!nextDate || !nextTime) return
+
+      const timeWithMeridiem = `${nextTime} ${nextMeridiem}`
+      const iso = inputDateToISO(nextDate, timeWithMeridiem)
       if (iso) {
         onChange(iso)
       }
@@ -105,7 +135,9 @@ export const DateTimePicker = React.forwardRef<HTMLInputElement, DateTimePickerP
       setViewMonth(startOfMonth(day))
       const iso = mergePreserveLocalTime(value, day)
       onChange(iso)
-      setDraft(formatDateTimeForInput(iso))
+      setDraftDate(formatForInput(iso))
+      setDraftTime(formatTimeForInput(iso))
+      setDraftMeridiem(formatMeridiemForInput(iso) === 'PM' ? 'PM' : 'AM')
       setOpen(false)
     }
 
@@ -118,10 +150,13 @@ export const DateTimePicker = React.forwardRef<HTMLInputElement, DateTimePickerP
     const weekdayLabels = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa']
     const valueDate = value ? dayjs(value).toDate() : null
 
+    const dateInputId = inputId
+    const timeInputId = `${inputId}-time`
+
     return (
       <div className={cn('flex flex-1 flex-col gap-1', className)}>
-        <Label htmlFor={inputId} className="sr-only">
-          {label} time
+        <Label htmlFor={dateInputId} className="sr-only">
+          {label} date
         </Label>
         <div className="flex items-center gap-2">
           <DropdownMenu open={disabled ? false : open} onOpenChange={handleOpenChange}>
@@ -208,18 +243,55 @@ export const DateTimePicker = React.forwardRef<HTMLInputElement, DateTimePickerP
           </DropdownMenu>
           <Input
             ref={forwardedRef}
-            id={inputId}
+            id={dateInputId}
             disabled={disabled}
-            type="text"
+            type="date"
             spellCheck={false}
             aria-describedby={ariaDescribedBy}
             aria-invalid={ariaInvalid}
-            aria-label={textInputAriaLabel ?? `${label} time`}
-            value={draft}
-            onChange={(e) => handleTextChange(e.target.value)}
-            placeholder="YYYY-MM-DDTHH:mm"
+            aria-label={dateInputAriaLabel ?? textInputAriaLabel ?? `${label} date`}
+            value={draftDate}
+            onChange={(e) => {
+              const next = e.target.value
+              setDraftDate(next)
+              commitIfValid(next, draftTime, draftMeridiem)
+            }}
             className="flex-1"
           />
+          <Input
+            id={timeInputId}
+            disabled={disabled}
+            type="text"
+            spellCheck={false}
+            aria-label={timeInputAriaLabel ?? `${label} time`}
+            value={draftTime}
+            onChange={(e) => {
+              const next = e.target.value
+              setDraftTime(next)
+              commitIfValid(draftDate, next, draftMeridiem)
+            }}
+            placeholder="h:mm"
+            className="w-24"
+          />
+          <Select
+            value={draftMeridiem}
+            onValueChange={(next) => {
+              const meridiem = next === 'PM' ? 'PM' : 'AM'
+              setDraftMeridiem(meridiem)
+              commitIfValid(draftDate, draftTime, meridiem)
+            }}
+          >
+            <SelectTrigger
+              aria-label={meridiemAriaLabel ?? `${label} meridiem`}
+              className="w-20"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="AM">AM</SelectItem>
+              <SelectItem value="PM">PM</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
     )

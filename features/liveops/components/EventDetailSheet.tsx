@@ -339,6 +339,7 @@ export function EventDetailSheet({
                       <DateTimePicker
                         label="End"
                         textInputAriaLabel="End date"
+                        timeInputAriaLabel="End time"
                         value={field.value ?? null}
                         disabled={neverEndsWatched}
                         onChange={(next) => field.onChange(next)}

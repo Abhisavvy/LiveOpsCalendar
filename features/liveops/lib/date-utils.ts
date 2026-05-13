@@ -224,6 +224,34 @@ export function formatDateTimeForInput(isoDate: string | null | undefined): stri
 }
 
 /**
+ * Format time for 12-hour form inputs (h:mm).
+ */
+export function formatTimeForInput(isoDate: string | null | undefined): string {
+  if (!isoDate) return ''
+  return dayjs(isoDate).format('h:mm')
+}
+
+/**
+ * Format time for AM/PM selector inputs (AM/PM).
+ */
+export function formatMeridiemForInput(isoDate: string | null | undefined): string {
+  if (!isoDate) return ''
+  return dayjs(isoDate).format('A')
+}
+
+/**
+ * Normalize time input to improve AM/PM parsing.
+ */
+function normalizeTimeInput(raw: string): string {
+  const trimmed = raw.trim()
+  if (!trimmed) return ''
+  const spaced = trimmed.replace(/\s+/g, ' ')
+  return /am|pm/i.test(spaced)
+    ? spaced.replace(/(am|pm)$/i, (match) => ` ${match.toUpperCase()}`.trim())
+    : spaced
+}
+
+/**
  * Convert form input date to ISO string
  *
  * HTML `datetime-local` and `date` inputs use the user's **local** calendar and
@@ -237,7 +265,12 @@ export function inputDateToISO(inputDate: string, inputTime?: string): string | 
   if (!trimmed) return null
 
   if (inputTime) {
-    const parsed = dayjs(`${trimmed} ${inputTime.trim()}`, 'YYYY-MM-DD HH:mm', true)
+    const normalizedTime = normalizeTimeInput(inputTime)
+    const parsed = dayjs(
+      `${trimmed} ${normalizedTime}`,
+      ['YYYY-MM-DD H:mm', 'YYYY-MM-DD HH:mm', 'YYYY-MM-DD h:mm A', 'YYYY-MM-DD hh:mm A'],
+      true,
+    )
     return parsed.isValid() ? parsed.toISOString() : null
   }
 

@@ -3,6 +3,7 @@ import { describe, it, expect, beforeAll, vi } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { RecurrenceConfig } from '../RecurrenceConfig'
 import type { RecurrenceConfig as RecurrenceConfigModel } from '../../types/events'
+import dayjs from 'dayjs'
 
 function RecurrenceHarness({ initial }: { initial: RecurrenceConfigModel }) {
   const [value, setValue] = React.useState<RecurrenceConfigModel | undefined>(initial)
@@ -20,6 +21,7 @@ describe('RecurrenceConfig', () => {
     )
 
     expect(screen.getByRole('button', { name: /until/i })).toBeInTheDocument()
+    expect(screen.getByLabelText(/until date/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/until time/i)).toBeInTheDocument()
     expect(document.querySelector('input[type="datetime-local"]')).toBeNull()
   })
@@ -63,6 +65,23 @@ describe('RecurrenceConfig (custom)', () => {
     expect(summary?.textContent).toContain('Every 2')
     expect(summary?.textContent).toContain('Mon')
     expect(summary?.textContent).toContain('day 15')
+  })
+
+  it('formats until summary in local 12-hour time', () => {
+    const until = '2026-05-01T13:30:00.000Z'
+    render(
+      <RecurrenceHarness
+        initial={{
+          frequency: 'daily',
+          interval: 1,
+          until,
+        }}
+      />,
+    )
+
+    const summary = screen.getByText(/Summary:/).parentElement
+    const expected = dayjs(until).format('MMM D, YYYY h:mm A')
+    expect(summary?.textContent).toContain(expected)
   })
 
   it('allows empty custom recurrence without weekday/monthly selections', () => {
