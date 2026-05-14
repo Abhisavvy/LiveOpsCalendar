@@ -143,6 +143,15 @@ export function getDefaultColumnMapping(): Record<string, string> {
     'Conditions/ Intent': 'description',
     'Status': 'status',
     'Duration': 'duration',
+    'Player Type': 'playerType',
+    'OS': 'osType',
+    frequency: 'frequency',
+    interval: 'interval',
+    daysOfWeek: 'daysOfWeek',
+    dayOfMonth: 'dayOfMonth',
+    monthlyPattern: 'monthlyPattern',
+    until: 'until',
+    count: 'count',
   }
 }
 

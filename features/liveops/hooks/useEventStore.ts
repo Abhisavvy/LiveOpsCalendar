@@ -13,6 +13,7 @@ import {
   formatCohorts,
   formatPlacements,
   normalizeCohorts,
+  normalizePlayerType,
   normalizePlacements,
 } from '../types/events'
 import { saveEvents, loadEvents, saveFilters, loadFilters } from '../lib/storage'
@@ -376,9 +377,13 @@ export const useEventStore = create<EventStore>()(
           // Player type filter
           if (playerTypeSelections.length > 0) {
             filtered = filtered.filter(
-              event =>
-                event.playerType === 'All' ||
-                playerTypeSelections.includes(event.playerType),
+              event => {
+                const normalizedPlayerType = normalizePlayerType(event.playerType)
+                return (
+                  normalizedPlayerType === 'All' ||
+                  playerTypeSelections.includes(normalizedPlayerType)
+                )
+              },
             )
           }
 

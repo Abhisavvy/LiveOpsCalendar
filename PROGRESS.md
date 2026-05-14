@@ -1,6 +1,9 @@
 ## Progress (canonical scratchpad)
 
 ### State
+- **2026-05-14 — Default CSV filters:** added Player Type + OS columns to default export mapping; test: `vitest run features/liveops/lib/__tests__/export-utils.test.ts`.
+- **2026-05-14 — Dev server restart:** restarted `next dev -H 127.0.0.1` with Watchpack polling on **http://127.0.0.1:3000** for latest CSV/player filter changes.
+- **2026-05-14 — Player filter + CSV export:** normalized playerType filtering and added recurrence fields to default export; tests: `vitest run features/liveops/hooks/__tests__/useEventStore.test.ts features/liveops/lib/__tests__/export-utils.test.ts`.
 - **2026-05-13 — Recurrence repro (post-restart):** Ticketmania (weekly Tue/Wed/Fri/Sat) and Game Master (daily count=3) both render multiple occurrences in month + list views after dev server restart.
 - **2026-05-13 — Recurrence utils verification:** `vitest run features/liveops/lib/__tests__/recurrence-utils.test.ts features/liveops/hooks/__tests__/useCalendarEvents.test.ts` passes after recurrence expansion implementation.
 - **2026-05-13 — Recurrence TDD:** added recurrence expansion tests; `vitest run features/liveops/lib/__tests__/recurrence-utils.test.ts features/liveops/hooks/__tests__/useCalendarEvents.test.ts` fails (recurrence utils missing + no expansion in calendar).

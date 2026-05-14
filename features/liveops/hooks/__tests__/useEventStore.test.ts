@@ -128,6 +128,23 @@ describe('useEventStore applyFilters (audience semantics)', () => {
     ])
   })
 
+  it('normalizes legacy playerType values when filtering', () => {
+    useEventStore.getState().addEvent(
+      baseInput({
+        title: 'Legacy payer',
+        playerType: 'payer' as unknown as EventInput['playerType'],
+      }),
+    )
+    useEventStore.getState().addEvent(baseInput({ title: 'All players', playerType: 'All' }))
+
+    useEventStore.getState().setFilters({ playerTypes: ['Payer'] })
+
+    expect(useEventStore.getState().filteredEvents.map(e => e.title).sort()).toEqual([
+      'All players',
+      'Legacy payer',
+    ])
+  })
+
   it('excludes payer-only rows when filtering to Non payer only', () => {
     useEventStore.getState().addEvent(baseInput({ title: 'Broad', playerType: 'All' }))
     useEventStore.getState().addEvent(baseInput({ title: 'Payers', playerType: 'Payer' }))

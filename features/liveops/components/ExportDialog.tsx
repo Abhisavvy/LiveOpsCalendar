@@ -162,10 +162,10 @@ export function ExportDialog({ isOpen, onOpenChange }: ExportDialogProps) {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="default">
-                  Default Columns (9 columns - Excel compatible)
+                  Default Columns (18 columns - Includes recurrence)
                 </SelectItem>
                 <SelectItem value="extended">
-                  Extended Columns (16 columns - Full data)
+                  Extended Columns (24 columns - Full data)
                 </SelectItem>
               </SelectContent>
             </Select>

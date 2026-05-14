@@ -47,11 +47,18 @@ describe('export-utils', () => {
   })
 
   describe('getDefaultColumnMapping', () => {
-    it('still targets core columns only', () => {
+    it('includes recurrence columns for round-trip exports', () => {
       const mapping = getDefaultColumnMapping()
       expect(mapping['Flow Name']).toBe('title')
-      expect(mapping.frequency).toBeUndefined()
-      expect(mapping['Player Type']).toBeUndefined()
+      expect(mapping['Player Type']).toBe('playerType')
+      expect(mapping.OS).toBe('osType')
+      expect(mapping.frequency).toBe('frequency')
+      expect(mapping.interval).toBe('interval')
+      expect(mapping.daysOfWeek).toBe('daysOfWeek')
+      expect(mapping.dayOfMonth).toBe('dayOfMonth')
+      expect(mapping.monthlyPattern).toBe('monthlyPattern')
+      expect(mapping.until).toBe('until')
+      expect(mapping.count).toBe('count')
     })
   })
 
@@ -132,6 +139,32 @@ describe('export-utils', () => {
       const row = (parsed.data[0] as Record<string, string>) ?? {}
       expect(row.dayOfMonth).toBe('15')
       expect(row.monthlyPattern).toBe('date')
+    })
+  })
+
+  describe('exportEventsToCSV default mapping', () => {
+    it('serializes recurrence fields in the default export', () => {
+      const events: LiveOpsEvent[] = [
+        baseEvent({
+          recurrence: {
+            frequency: 'weekly',
+            interval: 1,
+            daysOfWeek: [2, 4],
+          },
+        }),
+      ]
+      const csv = exportEventsToCSV(events, {
+        columnMapping: getDefaultColumnMapping(),
+        dateFormat: 'YYYY-MM-DD',
+      })
+      const parsed = Papa.parse(csv, { header: true, skipEmptyLines: true })
+      const row = (parsed.data[0] as Record<string, string>) ?? {}
+
+      expect(row.frequency).toBe('weekly')
+      expect(row.interval).toBe('1')
+      expect(row.daysOfWeek).toBe('2,4')
+      expect(row['Player Type']).toBe('Payer')
+      expect(row.OS).toBe('iOS')
     })
   })
 })
