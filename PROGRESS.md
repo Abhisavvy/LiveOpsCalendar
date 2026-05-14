@@ -1,6 +1,12 @@
 ## Progress (canonical scratchpad)
 
 ### State
+- **2026-05-14 — GitHub push success:** cleaned history and pushed `main` to `origin` (Abhisavvy/LiveOpsCalendar). Branch now tracks `origin/main`.
+- **2026-05-14 — Git history cleanup:** rewrote history to drop tracked `node_modules`, `.next`, and `out` artifacts to satisfy GitHub size limits.
+- **2026-05-14 — GitHub auth complete:** finished `gh auth login --web` for `github.com` (logged in as Abhisavvy).
+- **2026-05-14 — GitHub auth pending:** started `gh auth login --web` for `github.com` (device flow). Awaiting browser completion before retrying push.
+- **2026-05-14 — GitHub push blocked:** added `origin` for `Abhisavvy/LiveOpsCalendar` and attempted `git push -u origin main`, but push failed twice with **HTTP 408** (remote timeout). Needs retry or alternate auth/transport.
+- **2026-05-14 — GitHub CLI setup:** installed a local `gh` binary under `.tools/` (Homebrew install lacked permissions). `gh auth status` shows **not logged in**; requires `gh auth login` or a PAT to proceed.
 - **2026-05-14 — Default CSV filters:** added Player Type + OS columns to default export mapping; test: `vitest run features/liveops/lib/__tests__/export-utils.test.ts`.
 - **2026-05-14 — Dev server restart:** restarted `next dev -H 127.0.0.1` with Watchpack polling on **http://127.0.0.1:3000** for latest CSV/player filter changes.
 - **2026-05-14 — Player filter + CSV export:** normalized playerType filtering and added recurrence fields to default export; tests: `vitest run features/liveops/hooks/__tests__/useEventStore.test.ts features/liveops/lib/__tests__/export-utils.test.ts`.
