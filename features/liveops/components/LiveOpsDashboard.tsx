@@ -25,11 +25,19 @@ export function LiveOpsDashboard() {
   const totalEventCount = useEventStore(state => state.events.length)
   const visibleEventCount = useEventStore(state => state.filteredEvents.length)
   const clearFilters = useEventStore(state => state.clearFilters)
+  const applyFilters = useEventStore(state => state.applyFilters)
 
   // Load events from storage on mount
   useEffect(() => {
     loadFromStorage()
   }, [loadFromStorage])
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      applyFilters()
+    }, 60000)
+    return () => window.clearInterval(interval)
+  }, [applyFilters])
 
   // Check if mobile on mount and window resize
   useEffect(() => {
@@ -73,11 +81,13 @@ export function LiveOpsDashboard() {
       {/* Sidebar */}
       <div
         className={cn(
-          "relative flex flex-col bg-card border-r transition-all duration-300 ease-in-out",
-          isMobile 
-            ? (isSidebarOpen ? "w-80" : "w-0") 
-            : (isSidebarOpen ? "w-80" : "w-14"),
-          "min-h-full"
+          "flex flex-col bg-card border-r transition-all duration-300 ease-in-out",
+          isMobile
+            ? "fixed inset-y-0 left-0 z-50 w-80 shadow-lg transform"
+            : "relative min-h-full",
+          isMobile
+            ? (isSidebarOpen ? "translate-x-0" : "-translate-x-full pointer-events-none")
+            : (isSidebarOpen ? "w-80" : "w-14")
         )}
       >
         {/* Sidebar Header */}

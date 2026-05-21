@@ -22,7 +22,6 @@ export function FilterChips({ className }: FilterChipsProps) {
     togglePlayerType,
     toggleOsType,
     clearDateRange,
-    clearFilters,
   } = useEventFilters()
 
   if (!filterStats.hasActiveFilters) {
@@ -30,28 +29,8 @@ export function FilterChips({ className }: FilterChipsProps) {
   }
 
   return (
-    <div className={`space-y-3 ${className}`}>
-      {/* Filter Summary */}
-      <div className="flex items-center justify-between text-sm">
-        <span className="text-muted-foreground">
-          Showing {filterStats.filtered} of {filterStats.total} events
-          {filterStats.percentage < 100 && (
-            <span className="ml-1">({filterStats.percentage}%)</span>
-          )}
-        </span>
-        
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={clearFilters}
-          className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
-        >
-          Clear all
-        </Button>
-      </div>
-
-      {/* Active Filter Chips */}
-      <div className="flex flex-wrap gap-2">
+    <div className={className}>
+      <div className="flex flex-wrap gap-1 rounded-xl border border-border/60 bg-background/40 p-2 backdrop-blur max-h-24 overflow-hidden">
         {/* Search Query */}
         {filters.searchQuery.trim() && (
           <FilterChip
@@ -139,19 +118,19 @@ interface FilterChipProps {
 
 function FilterChip({ label, value, onRemove, color = 'gray' }: FilterChipProps) {
   const colorClasses = {
-    blue: 'bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900 dark:text-blue-200',
-    green: 'bg-green-100 text-green-800 hover:bg-green-200 dark:bg-green-900 dark:text-green-200',
-    purple: 'bg-purple-100 text-purple-800 hover:bg-purple-200 dark:bg-purple-900 dark:text-purple-200',
-    orange: 'bg-orange-100 text-orange-800 hover:bg-orange-200 dark:bg-orange-900 dark:text-orange-200',
-    teal: 'bg-teal-100 text-teal-800 hover:bg-teal-200 dark:bg-teal-900 dark:text-teal-200',
-    indigo: 'bg-indigo-100 text-indigo-800 hover:bg-indigo-200 dark:bg-indigo-900 dark:text-indigo-200',
-    gray: 'bg-gray-100 text-gray-800 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-200',
+    blue: 'border-blue-400/40 text-blue-100 bg-blue-500/15',
+    green: 'border-emerald-400/40 text-emerald-100 bg-emerald-500/15',
+    purple: 'border-violet-400/40 text-violet-100 bg-violet-500/15',
+    orange: 'border-orange-400/40 text-orange-100 bg-orange-500/15',
+    teal: 'border-teal-400/40 text-teal-100 bg-teal-500/15',
+    indigo: 'border-indigo-400/40 text-indigo-100 bg-indigo-500/15',
+    gray: 'border-border/60 text-foreground/80 bg-background/30',
   }
 
   return (
     <Badge
       variant="secondary"
-      className={`group flex items-center gap-1 pr-1 ${colorClasses[color]} transition-colors cursor-default`}
+      className={`group flex items-center gap-1 rounded-full border px-2 py-1 text-xs backdrop-blur transition-colors ${colorClasses[color]}`}
     >
       <span className="text-xs">
         {label}: <span className="font-medium">{value}</span>
@@ -160,7 +139,7 @@ function FilterChip({ label, value, onRemove, color = 'gray' }: FilterChipProps)
         variant="ghost"
         size="icon"
         onClick={onRemove}
-        className="h-4 w-4 p-0 hover:bg-transparent"
+        className="h-11 w-11 p-0 hover:bg-transparent"
         aria-label={`Remove ${label} filter`}
       >
         <X className="h-3 w-3" />

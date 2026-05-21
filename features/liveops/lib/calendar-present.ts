@@ -58,9 +58,12 @@ export function getStatusMeta(status: EventStatus | string): StatusMeta {
   return STATUS_META[(status as EventStatus) ?? 'Draft'] ?? STATUS_META.Draft
 }
 
-export function formatEventA11yLabel(event: LiveOpsEvent): string {
+export function formatEventA11yLabel(
+  event: LiveOpsEvent,
+  statusOverride?: EventStatus | string
+): string {
   const type = getEventTypeMeta(event.eventType).label
-  const status = getStatusMeta(event.status).label
+  const status = getStatusMeta(statusOverride ?? event.status).label
   const cohorts = formatCohorts(event.cohort)
   const placements = formatPlacements(event.placement)
   const endLabel = event.end ? '' : ' Never ends.'

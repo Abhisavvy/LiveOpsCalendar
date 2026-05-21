@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { useEventStore } from '../useEventStore'
 import type { EventInput, LiveOpsEvent } from '../../types/events'
 import { nowISO, addDurationToDate } from '../../lib/date-utils'
@@ -197,6 +197,26 @@ describe('useEventStore applyFilters (audience semantics)', () => {
       'Non payers',
       'Payers',
     ])
+  })
+
+  it('filters by derived status for past events', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-05-10T10:00:00.000Z'))
+
+    useEventStore.getState().addEvent(
+      baseInput({
+        title: 'Past event',
+        status: 'Scheduled',
+        start: '2026-05-01T00:00:00.000Z',
+        end: '2026-05-02T00:00:00.000Z',
+      })
+    )
+
+    useEventStore.getState().setFilters({ statuses: ['Ended'] })
+
+    expect(useEventStore.getState().filteredEvents.map(e => e.title)).toEqual(['Past event'])
+
+    vi.useRealTimers()
   })
 
   it('does not apply OS filter when selection includes All', () => {

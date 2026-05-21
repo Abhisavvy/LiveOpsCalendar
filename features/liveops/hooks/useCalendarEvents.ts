@@ -6,6 +6,7 @@ import { formatCohorts, formatPlacements, LiveOpsEvent } from '../types/events'
 import { getDisplayEnd } from '../lib/calendar-utils'
 import { useEventStore } from './useEventStore'
 import { expandRecurrence, getRecurrenceWindow } from '../lib/recurrence-utils'
+import { getAutomaticStatus } from '../lib/event-status'
 
 export interface CalendarExtendedProps {
   eventType: LiveOpsEvent['eventType']
@@ -27,12 +28,19 @@ export function useCalendarEvents() {
   const calendarEvents = useMemo<EventInput[]>(() => {
     const { rangeStart, rangeEnd } = getRecurrenceWindow()
 
+    /**
+     * Create a calendar event with series-level data but optional per-occurrence status.
+     */
     const buildCalendarEvent = (
       event: LiveOpsEvent,
       start: string,
       end: string | null,
-      idSuffix?: string
+      idSuffix?: string,
+      statusOverride?: LiveOpsEvent['status']
     ): EventInput => {
+      const derivedStatus = getAutomaticStatus(event)
+      const eventStatus = statusOverride ?? derivedStatus
+      const liveOpsData = derivedStatus === event.status ? event : { ...event, status: derivedStatus }
       const eventTypeClass = `event-${event.eventType.toLowerCase().replace(/\s+/g, '-')}`
       const clientValue = event.client ?? 'Kinoa'
       const clientClass = `client-${clientValue.toLowerCase().replace(/\s+/g, '-')}`
@@ -48,13 +56,13 @@ export function useCalendarEvents() {
         ],
         extendedProps: {
           eventType: event.eventType,
-          status: event.status,
+          status: eventStatus,
           cohort: formatCohorts(event.cohort),
           placement: formatPlacements(event.placement),
           description: event.description,
           recurrence: event.recurrence,
           isOpenEnded: event.end === null,
-          liveOpsData: event,
+          liveOpsData,
         } satisfies CalendarExtendedProps,
         // Make events draggable for rescheduling
         editable: true,
@@ -69,9 +77,21 @@ export function useCalendarEvents() {
       }
 
       const occurrences = expandRecurrence(event, { rangeStart, rangeEnd })
-      return occurrences.map((occurrence) =>
-        buildCalendarEvent(event, occurrence.start, occurrence.end, occurrence.start)
-      )
+      return occurrences.map((occurrence) => {
+        const occurrenceStatus = getAutomaticStatus({
+          ...event,
+          start: occurrence.start,
+          end: occurrence.end,
+          recurrence: undefined,
+        })
+        return buildCalendarEvent(
+          event,
+          occurrence.start,
+          occurrence.end,
+          occurrence.start,
+          occurrenceStatus
+        )
+      })
     })
   }, [filteredEvents])
 

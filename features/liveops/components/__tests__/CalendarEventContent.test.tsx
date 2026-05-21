@@ -67,7 +67,9 @@ describe('CalendarEventContent', () => {
     expect(css).toMatch(/\.fc-col-header-cell-cushion/)
     expect(css).toMatch(/\.fc-day-other\s+\.fc-daygrid-day-number/)
     expect(css).toMatch(/\.fc-day-other\s+\.fc-daygrid-day-top\s*\{[^}]*opacity:\s*0\.6/)
-    expect(css).toMatch(/\.fc-col-header-cell\s*\{[^}]*background-color:\s*hsl\(var\(--background\)\)/)
+    expect(css).toMatch(
+      /\.fc-col-header-cell\s*\{[^}]*background-color:\s*hsl\(var\(--background\)(?:\s*\/\s*0\.7)?\)/
+    )
     expect(css).toMatch(/\.fc-col-header-cell\s*\{[^}]*color:\s*hsl\(var\(--foreground\)\)/)
     expect(css).toMatch(/\.fc\s+\.fc-scrollgrid-section-header\s+th/)
   })
@@ -82,6 +84,14 @@ describe('CalendarEventContent', () => {
     expect(css).toMatch(/\.fc-event\.client-in-game\s*\{[^}]*background-color:\s*var\(--event-bg\)\s*!important/)
     expect(css).toMatch(/\.fc-event\.event-iap\s*\{[^}]*border-left-width:\s*4px/)
     expect(css).toMatch(/\.fc-event\.event-iap\s*\{[^}]*border-color:\s*var\(--event-border\)\s*!important/)
+  })
+
+  it('stacks event title and subtitle without overlap', () => {
+    const cssPath = path.join(process.cwd(), 'app/globals.css')
+    const css = readFileSync(cssPath, 'utf-8')
+
+    expect(css).toMatch(/\.fc-event-main-frame\s*\{[^}]*flex-direction:\s*column/)
+    expect(css).toMatch(/\.fc-event-main\s*\{[^}]*padding:\s*3px 6px/)
   })
 
   it('safelists FullCalendar structural classes for Tailwind', () => {

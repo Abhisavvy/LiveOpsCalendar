@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useMemo, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
 import { Search, Filter, Calendar, Users, Target, Activity, ChevronDown, ChevronRight, Smartphone, UserCircle } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -12,9 +13,39 @@ import { useEventFilters } from '../hooks/useEventFilters'
 import { useEventStore } from '../hooks/useEventStore'
 import { FilterChips } from './FilterChips'
 import { EVENT_TYPES, EVENT_STATUSES, PLAYER_TYPES, OS_TYPES } from '../types/events'
+import { useToast } from '@/hooks/use-toast'
 
 interface SidebarFiltersProps {
   className?: string
+}
+
+function AnimatedCollapsibleContent({
+  open,
+  className,
+  children,
+}: {
+  open: boolean
+  className?: string
+  children: React.ReactNode
+}) {
+  return (
+    <AnimatePresence initial={false}>
+      {open && (
+        <CollapsibleContent asChild>
+          <motion.div
+            className={className}
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            style={{ overflow: 'hidden' }}
+          >
+            {children}
+          </motion.div>
+        </CollapsibleContent>
+      )}
+    </AnimatePresence>
+  )
 }
 
 export function SidebarFilters({ className }: SidebarFiltersProps) {
@@ -36,6 +67,7 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
   } = useEventFilters()
 
   const events = useEventStore(state => state.events)
+  const { toast } = useToast()
 
   const [openSections, setOpenSections] = useState({
     search: true,
@@ -50,6 +82,14 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
 
   const setSectionOpen = (section: keyof typeof openSections, open: boolean) => {
     setOpenSections(prev => ({ ...prev, [section]: open }))
+  }
+
+  const handleClearFilters = () => {
+    clearFilters()
+    toast({
+      title: 'Filters cleared',
+      description: 'Showing all events.',
+    })
   }
 
   const counts = useMemo(() => {
@@ -75,18 +115,28 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
 
   return (
     <div className={`space-y-4 ${className}`}>
-      {/* Filter Summary */}
-      <div className="flex items-center gap-2">
-        <Filter className="h-4 w-4" />
-        <span className="text-sm font-medium">Filters</span>
-        {filterStats.hasActiveFilters && (
-          <Badge variant="secondary" className="text-xs">
-            {filterStats.filtered}/{filterStats.total}
-          </Badge>
-        )}
+      <div className="sticky top-0 z-10 -mx-2 rounded-xl border border-border/60 bg-card/80 px-2 py-2 backdrop-blur">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Filter className="h-4 w-4" />
+            <span className="text-sm font-medium">Active filters</span>
+            <Badge variant="secondary" className="text-xs">
+              {filterStats.filtered}/{filterStats.total}
+            </Badge>
+          </div>
+          {filterStats.hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleClearFilters}
+              className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+            >
+              Clear all
+            </Button>
+          )}
+        </div>
       </div>
 
-      {/* Active Filter Chips */}
       <FilterChips />
 
       {/* Search */}
@@ -104,7 +154,7 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
             )}
           </Button>
         </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-2 mt-2">
+        <AnimatedCollapsibleContent open={openSections.search} className="space-y-2 mt-2">
           <div className="relative">
             <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -117,7 +167,7 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
           <p className="text-xs text-muted-foreground">
             Search by title, description, placement, or cohort
           </p>
-        </CollapsibleContent>
+        </AnimatedCollapsibleContent>
       </Collapsible>
 
       {/* Event Types */}
@@ -140,7 +190,7 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
             )}
           </Button>
         </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-2 mt-2">
+        <AnimatedCollapsibleContent open={openSections.eventTypes} className="space-y-2 mt-2">
           <div className="flex gap-1">
             <Button
               variant="ghost"
@@ -184,7 +234,7 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
               )
             })}
           </div>
-        </CollapsibleContent>
+        </AnimatedCollapsibleContent>
       </Collapsible>
 
       {/* Cohorts */}
@@ -207,7 +257,7 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
             )}
           </Button>
         </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-2 mt-2">
+        <AnimatedCollapsibleContent open={openSections.cohorts} className="space-y-2 mt-2">
           <div className="flex gap-1">
             <Button
               variant="ghost"
@@ -257,7 +307,7 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
               </p>
             )}
           </div>
-        </CollapsibleContent>
+        </AnimatedCollapsibleContent>
       </Collapsible>
 
       {/* Player types */}
@@ -280,7 +330,7 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
             )}
           </Button>
         </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-2 mt-2">
+        <AnimatedCollapsibleContent open={openSections.playerTypes} className="space-y-2 mt-2">
           <div className="flex gap-1">
             <Button
               variant="ghost"
@@ -324,7 +374,7 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
               )
             })}
           </div>
-        </CollapsibleContent>
+        </AnimatedCollapsibleContent>
       </Collapsible>
 
       {/* OS types */}
@@ -347,7 +397,7 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
             )}
           </Button>
         </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-2 mt-2">
+        <AnimatedCollapsibleContent open={openSections.osTypes} className="space-y-2 mt-2">
           <div className="flex gap-1">
             <Button
               variant="ghost"
@@ -391,7 +441,7 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
               )
             })}
           </div>
-        </CollapsibleContent>
+        </AnimatedCollapsibleContent>
       </Collapsible>
 
       {/* Statuses */}
@@ -414,7 +464,7 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
             )}
           </Button>
         </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-2 mt-2">
+        <AnimatedCollapsibleContent open={openSections.statuses} className="space-y-2 mt-2">
           <div className="flex gap-1">
             <Button
               variant="ghost"
@@ -458,7 +508,7 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
               )
             })}
           </div>
-        </CollapsibleContent>
+        </AnimatedCollapsibleContent>
       </Collapsible>
 
       {/* Date Range */}
@@ -477,7 +527,7 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
             )}
           </Button>
         </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-2 mt-2">
+        <AnimatedCollapsibleContent open={openSections.dateRange} className="space-y-2 mt-2">
           <div className="grid grid-cols-2 gap-2">
             <div>
               <Label className="text-xs">From</Label>
@@ -504,7 +554,7 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
               />
             </div>
           </div>
-        </CollapsibleContent>
+        </AnimatedCollapsibleContent>
       </Collapsible>
 
       {/* Quick Presets */}
@@ -522,7 +572,7 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
             )}
           </Button>
         </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-2 mt-2">
+        <AnimatedCollapsibleContent open={openSections.presets} className="space-y-2 mt-2">
           <div className="grid grid-cols-2 gap-2">
             <Button
               variant="outline"
@@ -557,20 +607,10 @@ export function SidebarFilters({ className }: SidebarFiltersProps) {
               This Month
             </Button>
           </div>
-        </CollapsibleContent>
+        </AnimatedCollapsibleContent>
       </Collapsible>
 
-      {/* Clear All Button */}
-      {filterStats.hasActiveFilters && (
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={clearFilters}
-          className="w-full text-xs"
-        >
-          Clear All Filters
-        </Button>
-      )}
+      {/* Clear All Button removed in favor of sticky active bar */}
     </div>
   )
 }

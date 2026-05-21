@@ -98,4 +98,49 @@ describe('useCalendarEvents', () => {
     expect(starts).toEqual(['2026-01-01', '2026-01-02', '2026-01-03'])
     vi.useRealTimers()
   })
+
+  it('derives per-occurrence status for recurring events', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime(new Date('2026-05-01T08:30:00.000Z'))
+    const start = '2026-04-30T08:00:00.000Z'
+    useEventStore.setState({
+      filteredEvents: [
+        {
+          id: 'event-4',
+          title: 'Status Recurrence',
+          start,
+          end: '2026-04-30T09:00:00.000Z',
+          cohort: ['All'],
+          eventType: 'IAP',
+          playerType: 'All',
+          osType: 'All',
+          client: 'Kinoa',
+          placement: ['Home screen'],
+          description: '',
+          status: 'Scheduled',
+          recurrence: {
+            frequency: 'daily',
+            interval: 1,
+            count: 3,
+          },
+          createdAt: '2026-04-30T00:00:00.000Z',
+          updatedAt: '2026-04-30T00:00:00.000Z',
+        },
+      ],
+    } as any)
+
+    const { result } = renderHook(() => useCalendarEvents())
+    const statusTimeline = result.current.events.map((event) => {
+      const date = dayjs(event.start as string).format('YYYY-MM-DD')
+      const status = (event.extendedProps as { status?: string } | undefined)?.status ?? 'Unknown'
+      return { date, status }
+    })
+
+    expect(statusTimeline).toEqual([
+      { date: '2026-04-30', status: 'Ended' },
+      { date: '2026-05-01', status: 'Active' },
+      { date: '2026-05-02', status: 'Scheduled' },
+    ])
+    vi.useRealTimers()
+  })
 })

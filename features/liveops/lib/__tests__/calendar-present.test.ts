@@ -37,5 +37,26 @@ describe('calendar-present', () => {
     expect(label).toContain('Status: Draft')
     expect(label).toContain('Cohort: All')
   })
+
+  it('uses status override when provided', () => {
+    const label = formatEventA11yLabel(
+      {
+        id: 'id' as any,
+        title: 'Title',
+        start: '2024-01-01T00:00:00.000Z',
+        end: '2024-01-02T00:00:00.000Z',
+        cohort: ['All'],
+        eventType: 'IAP',
+        placement: ['Home screen'],
+        description: '',
+        status: 'Scheduled',
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z',
+      },
+      'Ended'
+    )
+
+    expect(label).toContain('Status: Ended')
+  })
 })
 

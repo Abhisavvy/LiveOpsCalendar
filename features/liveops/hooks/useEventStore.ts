@@ -18,6 +18,7 @@ import {
 } from '../types/events'
 import { saveEvents, loadEvents, saveFilters, loadFilters } from '../lib/storage'
 import { nowISO } from '../lib/date-utils'
+import { getAutomaticStatus } from '../lib/event-status'
 
 interface EventStore {
   // State
@@ -337,6 +338,7 @@ export const useEventStore = create<EventStore>()(
             : FilterStateSchema.parse({})
 
           let filtered = events
+          const deriveStatus = (event: LiveOpsEvent) => getAutomaticStatus(event)
 
           // Search query filter
           if (filters.searchQuery.trim()) {
@@ -398,8 +400,8 @@ export const useEventStore = create<EventStore>()(
 
           // Status filter
           if (filters.statuses.length > 0) {
-            filtered = filtered.filter(event => 
-              filters.statuses.includes(event.status)
+            filtered = filtered.filter(event =>
+              filters.statuses.includes(deriveStatus(event))
             )
           }
 
@@ -430,11 +432,16 @@ export const useEventStore = create<EventStore>()(
             rawFilters.playerTypes === undefined ||
             rawFilters.osTypes === undefined
 
+          const filteredWithStatus = filtered.map(event => {
+            const derivedStatus = deriveStatus(event)
+            return derivedStatus === event.status ? event : { ...event, status: derivedStatus }
+          })
+
           set((state) => {
             if (needsFilterShapeFix) {
               state.filters = filters
             }
-            state.filteredEvents = filtered
+            state.filteredEvents = filteredWithStatus
           })
         },
 
