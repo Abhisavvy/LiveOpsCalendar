@@ -14,6 +14,7 @@ import {
   normalizeOsType,
   normalizePlayerType,
   normalizePlacements,
+  normalizeEditableStatus,
 } from '../events'
 
 const baseEvent = {
@@ -166,6 +167,14 @@ describe('normalizeClient', () => {
     expect(normalizeClient('kinoa')).toBe('Kinoa')
     expect(normalizeClient('in-game')).toBe('In-game')
     expect(normalizeClient('In game')).toBe('In-game')
+  })
+})
+
+describe('normalizeEditableStatus', () => {
+  it('maps non-draft statuses to Active', () => {
+    expect(normalizeEditableStatus('Draft')).toBe('Draft')
+    expect(normalizeEditableStatus('Scheduled')).toBe('Active')
+    expect(normalizeEditableStatus('Ended')).toBe('Active')
   })
 })
 

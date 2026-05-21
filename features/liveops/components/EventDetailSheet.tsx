@@ -45,13 +45,14 @@ import {
   type EventFormInput,
   EventInput,
   EVENT_TYPES,
-  EVENT_STATUSES,
+  EDITABLE_EVENT_STATUSES,
   COHORT_OPTIONS,
   CLIENT_OPTIONS,
   PLACEMENT_OPTIONS,
   OS_TYPES,
   PLAYER_TYPES,
   normalizeCohorts,
+  normalizeEditableStatus,
   normalizePlacements,
 } from '../types/events'
 import { useEventStore } from '../hooks/useEventStore'
@@ -126,7 +127,7 @@ export function EventDetailSheet({
         client: event.client,
         placement: normalizePlacements(event.placement),
         description: event.description,
-        status: event.status,
+        status: normalizeEditableStatus(event.status),
         recurrence: event.recurrence,
         neverEnds: event.end === null,
       })
@@ -418,7 +419,7 @@ export function EventDetailSheet({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {EVENT_STATUSES.map((status) => (
+                        {EDITABLE_EVENT_STATUSES.map((status) => (
                           <SelectItem key={status} value={status}>
                             {status}
                           </SelectItem>

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 import type { LiveOpsEvent } from '../../types/events'
 import { EventDetailSheet } from '../EventDetailSheet'
 
@@ -102,6 +102,31 @@ describe('EventDetailSheet', () => {
     expect(osSel.textContent?.includes('Android')).toBe(true)
     const clientSel = screen.getByLabelText(/^Client$/)
     expect(clientSel.textContent?.includes('In-game')).toBe(true)
+  })
+
+  it('limits status options to Draft and Active', async () => {
+    render(<EventDetailSheet isOpen onOpenChange={vi.fn()} />)
+
+    const statusSelect = screen.getByRole('combobox', { name: /^Status$/i })
+    fireEvent.click(statusSelect)
+
+    await screen.findByRole('option', { name: 'Draft' })
+    const optionLabels = screen
+      .getAllByRole('option')
+      .map((option) => option.textContent?.trim())
+      .filter((value): value is string => Boolean(value))
+
+    expect(optionLabels).toEqual(['Draft', 'Active'])
+  })
+
+  it('normalizes scheduled/ended status to Active when editing', () => {
+    const scheduledEvent = { ...baseStoredEvent(), status: 'Scheduled' as const }
+    render(
+      <EventDetailSheet isOpen onOpenChange={vi.fn()} event={scheduledEvent} />,
+    )
+
+    const statusSelect = screen.getByRole('combobox', { name: /^Status$/i })
+    expect(statusSelect.textContent).toContain('Active')
   })
 
   it('uses DateTimePicker date + time inputs for start/end', () => {

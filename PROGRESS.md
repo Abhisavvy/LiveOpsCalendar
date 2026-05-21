@@ -1,6 +1,7 @@
 ## Progress (canonical scratchpad)
 
 ### State
+- **2026-05-20 — Status dropdown restriction:** Edit/Create only show Draft/Active; Scheduled/Ended normalize to Active in edit form; tests: `vitest run features/liveops/components/__tests__/EventDetailSheet.test.tsx` and `vitest run features/liveops/types/__tests__/events.test.ts`.
 - **2026-05-14 — GitHub push success:** cleaned history and pushed `main` to `origin` (Abhisavvy/LiveOpsCalendar). Branch now tracks `origin/main`.
 - **2026-05-14 — Git history cleanup:** rewrote history to drop tracked `node_modules`, `.next`, and `out` artifacts to satisfy GitHub size limits.
 - **2026-05-14 — GitHub auth complete:** finished `gh auth login --web` for `github.com` (logged in as Abhisavvy).

@@ -126,6 +126,16 @@ export function formatPlacements(input: string[] | string): string {
 export const EVENT_STATUSES = ['Draft', 'Scheduled', 'Active', 'Ended'] as const
 export type EventStatus = typeof EVENT_STATUSES[number]
 
+export const EDITABLE_EVENT_STATUSES = ['Draft', 'Active'] as const
+export type EditableEventStatus = typeof EDITABLE_EVENT_STATUSES[number]
+
+/**
+ * Map stored status values to the editable subset used by the form.
+ */
+export function normalizeEditableStatus(status: EventStatus): EditableEventStatus {
+  return status === 'Draft' ? 'Draft' : 'Active'
+}
+
 export const COHORT_OPTIONS = [
   'All',
   'D0',
